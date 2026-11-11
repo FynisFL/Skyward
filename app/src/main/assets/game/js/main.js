@@ -436,11 +436,106 @@
   const touchStick = document.getElementById('touch-stick');
   const touchKnob = document.getElementById('touch-stick-knob');
   if (touchControls && touchCapable) touchControls.classList.remove('hidden');
+
+  // ---------- custom HUD editor ----------
+  let hudEditMode = false;
+  const HUD_LAYOUT_KEY = 'skyward_hud_layout_v1';
+  const hudEditable = touchControls ? Array.from(touchControls.querySelectorAll('[data-touch], #touch-stick, #touch-look-zone')) : [];
+  let hudLayout = {};
+  try { hudLayout = JSON.parse(localStorage.getItem(HUD_LAYOUT_KEY) || '{}') || {}; } catch (e) { hudLayout = {}; }
+  const editHudBtn = document.getElementById('touch-edit-hud');
+  const hudEditor = document.createElement('section');
+  hudEditor.id = 'hud-editor-panel';
+  hudEditor.className = 'hidden';
+  hudEditor.innerHTML = '<h3>CUSTOM HUD</h3><div class="hud-edit-row"><label>Kích thước</label><input id="hud-size" type="range" min="60" max="160" value="100"><output id="hud-size-val">100%</output></div><div class="hud-edit-row"><label>Độ trong suốt</label><input id="hud-opacity" type="range" min="20" max="100" value="85"><output id="hud-opacity-val">85%</output></div><div class="hud-edit-actions"><button id="hud-reset">RESET</button><button id="hud-cancel">CANCEL</button><button id="hud-save" class="primary">SAVE</button></div><p class="hud-edit-tip">Kéo trực tiếp nút trên màn hình để đổi vị trí. Chọn nút để chỉnh kích thước và độ trong suốt.</p>';
+  if (touchControls) touchControls.appendChild(hudEditor);
+  const sizeSlider = hudEditor.querySelector('#hud-size'), opacitySlider = hudEditor.querySelector('#hud-opacity');
+  let selectedHud = null, hudSnapshot = null;
+  function hudKey(el) { return el.id || el.dataset.touch || 'look'; }
+  function applyHudItem(el, data) {
+    if (!data) return;
+    el.style.left = data.x + '%'; el.style.top = data.y + '%';
+    el.style.right = 'auto'; el.style.bottom = 'auto';
+    el.style.transform = 'translate(-50%,-50%)';
+    el.style.width = (data.baseW * data.scale) + 'px';
+    el.style.height = (data.baseH * data.scale) + 'px';
+    el.style.opacity = data.opacity;
+  }
+  function captureHudDefaults() {
+    hudEditable.forEach(el => {
+      const k = hudKey(el), r = el.getBoundingClientRect(), p = touchControls.getBoundingClientRect();
+      const saved = hudLayout[k];
+      if (saved) { applyHudItem(el, saved); return; }
+      el.dataset.hudBaseW = r.width; el.dataset.hudBaseH = r.height;
+    });
+  }
+  function selectHud(el) {
+    if (selectedHud) selectedHud.classList.remove('hud-selected');
+    selectedHud = el; el.classList.add('hud-selected');
+    const k = hudKey(el), r = el.getBoundingClientRect();
+    const data = hudLayout[k] || {scale:1,opacity:0.85};
+    sizeSlider.value = Math.round(data.scale*100); opacitySlider.value = Math.round(data.opacity*100);
+    hudEditor.querySelector('#hud-size-val').textContent=sizeSlider.value+'%';
+    hudEditor.querySelector('#hud-opacity-val').textContent=opacitySlider.value+'%';
+  }
+  function updateSelectedHud() {
+    if (!selectedHud) return;
+    const k=hudKey(selectedHud), p=touchControls.getBoundingClientRect();
+    const old=hudLayout[k] || {x:((selectedHud.getBoundingClientRect().left+p.left*-1)/p.width)*100,y:((selectedHud.getBoundingClientRect().top+p.top*-1)/p.height)*100,scale:1,opacity:.85};
+    const data={x:old.x,y:old.y,scale:Number(sizeSlider.value)/100,opacity:Number(opacitySlider.value)/100,baseW:Number(selectedHud.dataset.hudBaseW)||selectedHud.offsetWidth,baseH:Number(selectedHud.dataset.hudBaseH)||selectedHud.offsetHeight};
+    hudLayout[k]=data; applyHudItem(selectedHud,data);
+    hudEditor.querySelector('#hud-size-val').textContent=sizeSlider.value+'%';
+    hudEditor.querySelector('#hud-opacity-val').textContent=opacitySlider.value+'%';
+  }
+  function enterHudEdit() {
+    if (!touchControls || G.state!=='playing' || hudEditMode) return;
+    hudSnapshot=JSON.stringify(hudLayout); hudEditMode=true;
+    triggerDown=false; player.touchMove.x=0; player.touchMove.y=0; weapons.setAiming(false);
+    touchControls.classList.add('hud-editing'); hudEditor.classList.remove('hidden');
+    hudEditable.forEach(el=>{el.dataset.hudEditable='1';});
+    if (hudEditable.length) selectHud(hudEditable[0]);
+  }
+  function exitHudEdit(save) {
+    if (!hudEditMode) return;
+    if (save) { try { localStorage.setItem(HUD_LAYOUT_KEY,JSON.stringify(hudLayout)); } catch(e){} }
+    else { hudLayout=JSON.parse(hudSnapshot||'{}'); hudEditable.forEach(el=>{el.style.cssText='';const d=hudLayout[hudKey(el)];if(d)applyHudItem(el,d);}); }
+    hudEditMode=false; touchControls.classList.remove('hud-editing'); hudEditor.classList.add('hidden');
+    hudEditable.forEach(el=>{delete el.dataset.hudEditable;el.classList.remove('hud-selected');});
+    selectedHud=null;
+  }
+  if (touchControls) {
+    hudEditable.forEach(el=>{
+      const key=hudKey(el), rect=el.getBoundingClientRect();
+      el.dataset.hudBaseW=rect.width; el.dataset.hudBaseH=rect.height;
+      if(hudLayout[key]) applyHudItem(el,hudLayout[key]);
+      el.addEventListener('pointerdown',e=>{
+        if(!hudEditMode || (e.pointerType!=='touch' && e.pointerType!=='pen')) return;
+        e.preventDefault(); e.stopImmediatePropagation(); selectHud(el);
+        try{el.setPointerCapture(e.pointerId);}catch(err){}
+        const parent=touchControls.getBoundingClientRect(), startX=e.clientX, startY=e.clientY;
+        const current=hudLayout[key] || {x:((el.getBoundingClientRect().left+el.offsetWidth/2-parent.left)/parent.width)*100,y:((el.getBoundingClientRect().top+el.offsetHeight/2-parent.top)/parent.height)*100,scale:1,opacity:.85,baseW:Number(el.dataset.hudBaseW),baseH:Number(el.dataset.hudBaseH)};
+        const move=ev=>{if(ev.pointerId!==e.pointerId)return;ev.preventDefault();const x=Math.max(2,Math.min(98,current.x+(ev.clientX-startX)/parent.width*100));const y=Math.max(3,Math.min(97,current.y+(ev.clientY-startY)/parent.height*100));hudLayout[key]={...current,x,y};applyHudItem(el,hudLayout[key]);};
+        const end=ev=>{if(ev.pointerId!==e.pointerId)return;el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',end);el.removeEventListener('pointercancel',end);};
+        el.addEventListener('pointermove',move);el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+      },true);
+      el.addEventListener('click',e=>{if(hudEditMode){e.preventDefault();e.stopImmediatePropagation();selectHud(el);}},true);
+    });
+  }
+  if(editHudBtn) editHudBtn.addEventListener('click',enterHudEdit);
+  sizeSlider.addEventListener('input',updateSelectedHud); opacitySlider.addEventListener('input',updateSelectedHud);
+  hudEditor.querySelector('#hud-save').addEventListener('click',()=>exitHudEdit(true));
+  hudEditor.querySelector('#hud-cancel').addEventListener('click',()=>exitHudEdit(false));
+  hudEditor.querySelector('#hud-reset').addEventListener('click',()=>{
+    hudLayout={}; hudEditable.forEach(el=>{el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';el.style.transform='';el.style.width='';el.style.height='';el.style.opacity='';});
+    try{localStorage.removeItem(HUD_LAYOUT_KEY);}catch(e){}
+    if(hudEditable.length)selectHud(hudEditable[0]);
+  });
+
   let stickPointer = null, lookPointer = null, lookX = 0, lookY = 0;
   if (touchStick) {
     touchStick.addEventListener('pointerdown', (e) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-      if (G.state !== 'playing' || stickPointer !== null) return;
+      if (hudEditMode || G.state !== 'playing' || stickPointer !== null) return;
       e.preventDefault(); stickPointer = e.pointerId;
       try { touchStick.setPointerCapture(e.pointerId); } catch (err) {}
       updateStick(e);
@@ -470,7 +565,7 @@
   const lookZone = document.getElementById('touch-look-zone');
   if (lookZone) {
     lookZone.addEventListener('pointerdown', (e) => {
-      if ((e.pointerType !== 'touch' && e.pointerType !== 'pen') || G.state !== 'playing' || lookPointer !== null) return;
+      if (hudEditMode || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || G.state !== 'playing' || lookPointer !== null) return;
       e.preventDefault();
       lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
       try { lookZone.setPointerCapture(e.pointerId); } catch (err) {}
@@ -496,7 +591,7 @@
       const action = btn.dataset.touch;
       const activePointers = new Set();
       btn.addEventListener('pointerdown', (e) => {
-        if ((e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
+        if (hudEditMode || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
         e.preventDefault();
         activePointers.add(e.pointerId);
         try { btn.setPointerCapture(e.pointerId); } catch (err) {}

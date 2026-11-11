@@ -704,3 +704,19 @@ kbd {
   .touch-btn .touch-glyph { font-size:18px; }
   .touch-pause { width:36px; height:36px; }
 }
+
+
+/* ============ Custom HUD editor ============ */
+#touch-edit-hud{position:absolute;z-index:30;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);pointer-events:auto;border:1px solid rgba(143,208,255,.35);border-radius:9px;padding:8px 12px;background:rgba(8,18,26,.88);color:#e8f2f8;font:700 10px var(--font);letter-spacing:.1em}
+#touch-controls.hud-editing [data-hud-editable]{outline:2px dashed rgba(143,208,255,.9);outline-offset:3px;touch-action:none!important}
+#touch-controls.hud-editing [data-hud-editable].hud-selected{outline:2px solid var(--accent-2);filter:brightness(1.2)}
+#touch-controls.hud-editing #touch-look-zone{background:rgba(80,160,220,.12);border:1px dashed rgba(143,208,255,.5)}
+#hud-editor-panel{position:absolute;z-index:50;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,88vw);padding:14px;border:1px solid rgba(143,208,255,.3);border-radius:12px;background:rgba(7,16,23,.96);box-shadow:0 12px 40px rgba(0,0,0,.5);pointer-events:auto;color:var(--ink);font:12px var(--font)}
+#hud-editor-panel h3{font-size:13px;letter-spacing:.12em;margin-bottom:10px}
+#hud-editor-panel .hud-edit-row{display:grid;grid-template-columns:78px 1fr 38px;align-items:center;gap:8px;margin:10px 0}
+#hud-editor-panel input[type=range]{width:100%;accent-color:var(--accent)}
+#hud-editor-panel .hud-edit-actions{display:flex;gap:7px;margin-top:12px}
+#hud-editor-panel button{flex:1;padding:9px 5px;border-radius:7px;border:1px solid var(--panel-line);background:rgba(143,208,255,.1);color:var(--ink);font:700 10px var(--font)}
+#hud-editor-panel button.primary{background:var(--accent);color:#17100b;border:0}
+#hud-editor-panel .hud-edit-tip{color:var(--ink-dim);font-size:10px;line-height:1.45;margin-top:8px}
+#touch-controls.hud-editing #touch-edit-hud{display:none}
