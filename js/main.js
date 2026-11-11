@@ -478,8 +478,10 @@
   let selectedHud = null, hudSnapshot = null;
   function hudKey(el) { return el.id || el.dataset.touch || 'look'; }
   const hudDefaultLayout = {};
+  const hudBaseStyles = new Map();
   const hudOriginalStyles = new Map();
   const hudActions = touchControls ? touchControls.querySelector('#touch-actions') : null;
+  const hudActionsBaseStyle = hudActions ? hudActions.style.cssText : '';
   let hudActionsOriginalStyle = '';
   function itemCenter(el) {
     const r=el.getBoundingClientRect(), p=touchControls.getBoundingClientRect();
@@ -520,14 +522,30 @@
     if (settingsScreen) settingsScreen.classList.add('hidden');
     hudSnapshot=JSON.stringify(hudLayout);
     hudOriginalStyles.clear();
-    hudActionsOriginalStyle = hudActions ? hudActions.style.cssText : '';
-    if (hudActions) hudActions.style.position = 'static';
+
+    // HUD is display:none at boot. Restore native CSS before measuring visible controls.
     hudEditable.forEach(el=>{
       hudOriginalStyles.set(el,el.style.cssText);
-      const k=hudKey(el), data=hudLayout[k]||hudDefaultLayout[k];
-      hudLayout[k]={...data}; applyHudItem(el,hudLayout[k]);
+      el.style.cssText = hudBaseStyles.get(el) || '';
+    });
+    if (hudActions) {
+      hudActionsOriginalStyle = hudActions.style.cssText;
+      hudActions.style.cssText = hudActionsBaseStyle;
+    }
+    touchControls.getBoundingClientRect();
+
+    hudEditable.forEach(el=>{
+      const k=hudKey(el), rect=el.getBoundingClientRect(), center=itemCenter(el);
+      const base={x:center.x,y:center.y,scale:1,opacity:.85,baseW:rect.width,baseH:rect.height};
+      hudDefaultLayout[k]=base;
+      const saved=JSON.parse(hudSnapshot||'{}')[k];
+      const data=saved ? {...base,...saved,baseW:base.baseW,baseH:base.baseH} : {...base};
+      hudLayout[k]={...data};
+      el.dataset.hudBaseW=rect.width; el.dataset.hudBaseH=rect.height;
       el.dataset.hudEditable='1';
     });
+    if (hudActions) hudActions.style.position = 'static';
+    hudEditable.forEach(el=>applyHudItem(el,hudLayout[hudKey(el)]));
     hudEditMode=true;
     triggerDown=false; player.touchMove.x=0; player.touchMove.y=0; weapons.setAiming(false);
     touchControls.classList.add('hud-editing'); hudEditor.classList.remove('hidden');
@@ -549,18 +567,10 @@
     hudWasPaused = false;
   }
   if (touchControls) {
-    hudEditable.forEach(el=>{
-      const key=hudKey(el), rect=el.getBoundingClientRect(), center=itemCenter(el);
-      el.dataset.hudBaseW=rect.width; el.dataset.hudBaseH=rect.height;
-      hudDefaultLayout[key]={x:center.x,y:center.y,scale:1,opacity:.85,baseW:rect.width,baseH:rect.height};
-    });
-    if (hudActions && hudLayout && Object.keys(hudLayout).length) hudActions.style.position = 'static';
+    // Capture inline baselines only; measure geometry lazily when HUD is visible.
+    hudEditable.forEach(el=>hudBaseStyles.set(el,el.style.cssText));
     hudEditable.forEach(el=>{
       const key=hudKey(el);
-      if(hudLayout[key]) {
-        hudLayout[key]={...hudDefaultLayout[key],...hudLayout[key],baseW:hudDefaultLayout[key].baseW,baseH:hudDefaultLayout[key].baseH};
-        applyHudItem(el,hudLayout[key]);
-      }
       el.addEventListener('pointerdown',e=>{
         if(!hudEditMode || (e.pointerType!=='touch' && e.pointerType!=='pen')) return;
         e.preventDefault(); e.stopImmediatePropagation(); selectHud(el);
