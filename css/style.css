@@ -707,7 +707,6 @@ kbd {
 
 
 /* ============ Custom HUD editor ============ */
-#touch-edit-hud{position:absolute;z-index:30;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);pointer-events:auto;border:1px solid rgba(143,208,255,.35);border-radius:9px;padding:8px 12px;background:rgba(8,18,26,.88);color:#e8f2f8;font:700 10px var(--font);letter-spacing:.1em}
 #touch-controls.hud-editing [data-hud-editable]{outline:2px dashed rgba(143,208,255,.9);outline-offset:3px;touch-action:none!important}
 #touch-controls.hud-editing [data-hud-editable].hud-selected{outline:2px solid var(--accent-2);filter:brightness(1.2)}
 #touch-controls.hud-editing #touch-look-zone{background:rgba(80,160,220,.12);border:1px dashed rgba(143,208,255,.5)}
@@ -719,4 +718,4 @@ kbd {
 #hud-editor-panel button{flex:1;padding:9px 5px;border-radius:7px;border:1px solid var(--panel-line);background:rgba(143,208,255,.1);color:var(--ink);font:700 10px var(--font)}
 #hud-editor-panel button.primary{background:var(--accent);color:#17100b;border:0}
 #hud-editor-panel .hud-edit-tip{color:var(--ink-dim);font-size:10px;line-height:1.45;margin-top:8px}
-#touch-controls.hud-editing #touch-edit-hud{display:none}
+.hud-setting-row > div{display:flex;flex-direction:column;gap:4px}.hud-setting-row small{color:var(--ink-dim);font-size:10px}.hud-setting-row button{padding:9px 12px;border:1px solid var(--panel-line);border-radius:7px;background:rgba(143,208,255,.1);color:var(--ink);font:700 10px var(--font);letter-spacing:.08em;white-space:nowrap}

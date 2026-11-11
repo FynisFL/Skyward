@@ -439,6 +439,7 @@
 
   // ---------- custom HUD editor ----------
   let hudEditMode = false;
+  let hudWasPaused = false;
   const HUD_LAYOUT_KEY = 'skyward_hud_layout_v1';
   const hudEditable = touchControls ? Array.from(touchControls.querySelectorAll('[data-touch], #touch-stick, #touch-look-zone')) : [];
   let hudLayout = {};
@@ -488,7 +489,10 @@
     hudEditor.querySelector('#hud-opacity-val').textContent=opacitySlider.value+'%';
   }
   function enterHudEdit() {
-    if (!touchControls || G.state!=='playing' || hudEditMode) return;
+    if (!touchControls || (G.state!=='playing' && G.state!=='paused') || hudEditMode) return;
+    hudWasPaused = G.state === 'paused';
+    const settingsScreen = document.getElementById('settings-screen');
+    if (settingsScreen) settingsScreen.classList.add('hidden');
     hudSnapshot=JSON.stringify(hudLayout); hudEditMode=true;
     triggerDown=false; player.touchMove.x=0; player.touchMove.y=0; weapons.setAiming(false);
     touchControls.classList.add('hud-editing'); hudEditor.classList.remove('hidden');
@@ -502,6 +506,8 @@
     hudEditMode=false; touchControls.classList.remove('hud-editing'); hudEditor.classList.add('hidden');
     hudEditable.forEach(el=>{delete el.dataset.hudEditable;el.classList.remove('hud-selected');});
     selectedHud=null;
+    if (hudWasPaused) ui.show('pause', true);
+    hudWasPaused = false;
   }
   if (touchControls) {
     hudEditable.forEach(el=>{
@@ -521,7 +527,14 @@
       el.addEventListener('click',e=>{if(hudEditMode){e.preventDefault();e.stopImmediatePropagation();selectHud(el);}},true);
     });
   }
-  if(editHudBtn) editHudBtn.addEventListener('click',enterHudEdit);
+  const settingsHudBtn = document.getElementById('btn-custom-hud');
+  if(settingsHudBtn) settingsHudBtn.addEventListener('click', () => {
+    if (G.state === 'paused' || G.state === 'playing') enterHudEdit();
+    else {
+      const note = document.getElementById('hud-setting-note');
+      if (note) note.textContent = 'Hãy bắt đầu trận, nhấn Pause rồi mở Settings để chỉnh HUD.';
+    }
+  });
   sizeSlider.addEventListener('input',updateSelectedHud); opacitySlider.addEventListener('input',updateSelectedHud);
   hudEditor.querySelector('#hud-save').addEventListener('click',()=>exitHudEdit(true));
   hudEditor.querySelector('#hud-cancel').addEventListener('click',()=>exitHudEdit(false));
