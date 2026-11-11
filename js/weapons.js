@@ -68,8 +68,17 @@ class WeaponSystem {
   // ---------------- viewmodel ----------------
   _buildViewmodels() {
     this.rig = new THREE.Group();
-    this.rig.position.set(0.3, -0.3, -0.62);
+    // Raise and center the first-person weapon slightly to prevent lower-edge clipping.
+    this.rig.position.set(0.22, -0.24, -0.62);
     this.camera.add(this.rig);
+    // Camera-space fill lights improve metallic viewmodel readability without
+    // changing world lighting or enemy shading.
+    this.viewmodelFill = new THREE.PointLight(0xc8e4ff, 1.05, 3.8, 2);
+    this.viewmodelFill.position.set(0.18, -0.12, -1.15);
+    this.camera.add(this.viewmodelFill);
+    this.viewmodelRim = new THREE.DirectionalLight(0xe3f2ff, 0.55);
+    this.viewmodelRim.position.set(-0.35, 0.45, -0.4);
+    this.camera.add(this.viewmodelRim);
 
     const gunMetal = new THREE.MeshStandardMaterial({ color: 0x2f363d, roughness: 0.5, metalness: 0.7 });
     const gunAccent = new THREE.MeshStandardMaterial({ color: 0xff7a2f, roughness: 0.4, metalness: 0.3, emissive: 0x903a08, emissiveIntensity: 0.5 });
@@ -458,11 +467,11 @@ class WeaponSystem {
     if (this.inspectT > 0) this.inspectT = Math.max(0, this.inspectT - dt);
     const moving = this.player.keys.size > 0 || Math.abs(this.player.touchMove.x) + Math.abs(this.player.touchMove.y) > 0.2;
     const sway = moving ? 1 : 0.28;
-    const targetX = 0.3 + Math.sin(this.motionT * 7) * 0.012 * sway;
+    const targetX = 0.22 + Math.sin(this.motionT * 7) * 0.012 * sway;
     const reloadProgress = this.reloading > 0 && this.reloadDuration > 0 ? 1 - this.reloading / this.reloadDuration : 0;
     const reloadDip = this.reloading > 0 ? Math.sin(reloadProgress * Math.PI) * 0.2 : 0;
     this.rig.position.x += (targetX - this.rig.position.x) * Math.min(1, dt * 8);
-    this.rig.position.y += (-0.3 - reloadDip - this.rig.position.y) * Math.min(1, dt * 7);
+    this.rig.position.y += (-0.24 - reloadDip - this.rig.position.y) * Math.min(1, dt * 7);
     this.rig.position.z += (-0.62 - this.rig.position.z + (this.switchAnim > 0 ? 0.28 : 0)) * Math.min(1, dt * 10);
     const inspectPose = this.inspectT > 0 ? Math.sin((1.15 - this.inspectT) / 1.15 * Math.PI) : 0;
     this.rig.rotation.x += (inspectPose * -0.12 - this.rig.rotation.x) * Math.min(1, dt * 7);

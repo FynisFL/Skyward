@@ -41,7 +41,7 @@
   const savedSettings = savedSettingsRaw && typeof savedSettingsRaw === 'object' ? savedSettingsRaw : {};
   const settings = Object.assign({
     sens: 1, vol: 0.6, musicVol: 0.45, masterVol: 0.8,
-    invert: false, motion: false, quality: 'med', muted: false
+    invert: false, motion: false, quality: touchCapable ? 'low' : 'med', muted: false
   }, savedSettings);
   if (['low', 'med', 'high'].indexOf(settings.quality) < 0) settings.quality = touchCapable ? 'low' : 'med';
   if (window.SkywardAssetFactory) window.SkywardAssetFactory.setQuality(settings.quality);
@@ -438,10 +438,24 @@
   if (touchControls && touchCapable) touchControls.classList.remove('hidden');
   let stickPointer = null, lookPointer = null, lookX = 0, lookY = 0;
   if (touchStick) {
-    touchStick.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return; e.preventDefault(); stickPointer = e.pointerId; touchStick.setPointerCapture(e.pointerId); updateStick(e); });
-    touchStick.addEventListener('pointermove', (e) => { if (e.pointerId === stickPointer) { e.preventDefault(); updateStick(e); } });
-    const endStick = (e) => { if (e.pointerId === stickPointer) { stickPointer = null; player.touchMove.x = 0; player.touchMove.y = 0; touchKnob.style.transform = 'translate(-50%,-50%)'; } };
-    touchStick.addEventListener('pointerup', endStick); touchStick.addEventListener('pointercancel', endStick);
+    touchStick.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+      if (G.state !== 'playing' || stickPointer !== null) return;
+      e.preventDefault(); stickPointer = e.pointerId;
+      try { touchStick.setPointerCapture(e.pointerId); } catch (err) {}
+      updateStick(e);
+    });
+    touchStick.addEventListener('pointermove', (e) => {
+      if (e.pointerId === stickPointer) { e.preventDefault(); updateStick(e); }
+    });
+    const endStick = (e) => {
+      if (e.pointerId !== stickPointer) return;
+      stickPointer = null; player.touchMove.x = 0; player.touchMove.y = 0;
+      touchKnob.style.transform = 'translate(-50%,-50%)';
+    };
+    touchStick.addEventListener('pointerup', endStick);
+    touchStick.addEventListener('pointercancel', endStick);
+    touchStick.addEventListener('lostpointercapture', endStick);
   }
   function updateStick(e) {
     if (G.state !== 'playing') { player.touchMove.x = 0; player.touchMove.y = 0; return; }
@@ -452,8 +466,8 @@
     touchKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   }
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch' || G.state !== 'playing' || (e.clientX < window.innerWidth * 0.42)) return;
-    lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
+    if (e.pointerType !== 'touch' || G.state !== 'playing' || (e.clientX < window.innerWidth * 0.44) || lookPointer !== null) return;
+    e.preventDefault(); lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -468,7 +482,9 @@
       const action = btn.dataset.touch;
       btn.addEventListener('pointerdown', (e) => {
         if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
-        e.preventDefault(); btn.setPointerCapture(e.pointerId); btn.classList.add('pressed');
+        e.preventDefault();
+        try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+        btn.classList.add('pressed');
         if (G.state !== 'playing') return;
         if (action === 'pause') { pauseGame(); return; }
         if (action === 'sprint') player.keys.add('ShiftLeft');
@@ -482,7 +498,10 @@
         else if (action === 'cycle') weapons.cycle(1);
       });
       const release = () => { btn.classList.remove('pressed'); if (action === 'fire') triggerDown = false; if (action === 'aim') weapons.setAiming(false); if (action === 'sprint') player.keys.delete('ShiftLeft'); };
-      btn.addEventListener('pointerup', release); btn.addEventListener('pointercancel', release); btn.addEventListener('lostpointercapture', release);
+      btn.addEventListener('pointerup', release);
+      btn.addEventListener('pointercancel', release);
+      btn.addEventListener('lostpointercapture', release);
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
     });
   }
 
@@ -495,7 +514,7 @@
   document.getElementById('hud').appendChild(lockHintEl);
 
   function lockHint() {
-    lockHintEl.style.display = (G.state === 'playing' && !locked) ? 'block' : 'none';
+    lockHintEl.style.display = (!touchCapable && G.state === 'playing' && !locked) ? 'block' : 'none';
   }
 
   // ---------- máy trạng thái ----------

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>SKYWARD SALVAGE — Hybrid 3D Final Build</title>
 <meta name="description" content="Skyward Salvage — tactical sci-fi FPS roguelite, chiến đấu theo wave, chạy offline trên trình duyệt." />
 <link rel="stylesheet" href="css/style.css" />
@@ -71,19 +71,20 @@
     <div id="enemy-overlay" aria-hidden="true"></div>
     <div id="damage-direction" aria-hidden="true"><span>INCOMING</span></div>
     <div id="touch-controls" class="hidden" aria-label="Điều khiển cảm ứng">
-      <div id="touch-stick"><div id="touch-stick-knob"></div></div>
-      <div id="touch-actions">
-        <button class="touch-btn fire" data-touch="fire">BẮN</button>
-        <button class="touch-btn" data-touch="aim">NGẮM</button>
-        <button class="touch-btn" data-touch="jump">NHẢY</button>
-        <button class="touch-btn" data-touch="sprint">CHẠY</button>
-        <button class="touch-btn" data-touch="reload">NẠP</button>
-        <button class="touch-btn" data-touch="dash">Q</button>
-        <button class="touch-btn" data-touch="grenade">E</button>
-        <button class="touch-btn" data-touch="strike">F</button>
-        <button class="touch-btn" data-touch="cycle">ĐỔI</button>
-        <button class="touch-btn" data-touch="pause">DỪNG</button>
+      <div id="touch-stick" aria-label="Joystick di chuyển"><div id="touch-stick-knob"></div></div>
+      <button id="touch-pause" class="touch-btn touch-pause" data-touch="pause" aria-label="Tạm dừng">Ⅱ</button>
+      <div id="touch-actions" aria-label="Nút chiến đấu">
+        <button class="touch-btn action-dash" data-touch="dash" aria-label="Lao nhanh">LAO</button>
+        <button class="touch-btn action-grenade" data-touch="grenade" aria-label="Lựu đạn">LỰU ĐẠN</button>
+        <button class="touch-btn action-strike" data-touch="strike" aria-label="Không kích">KHÔNG KÍCH</button>
+        <button class="touch-btn action-reload" data-touch="reload" aria-label="Nạp đạn">NẠP</button>
+        <button class="touch-btn action-cycle" data-touch="cycle" aria-label="Đổi vũ khí">ĐỔI SÚNG</button>
+        <button class="touch-btn action-sprint" data-touch="sprint" aria-label="Chạy nhanh">CHẠY</button>
+        <button class="touch-btn action-aim" data-touch="aim" aria-label="Ngắm">NGẮM</button>
+        <button class="touch-btn action-jump" data-touch="jump" aria-label="Nhảy">NHẢY</button>
+        <button class="touch-btn fire" data-touch="fire" aria-label="Bắn">BẮN</button>
       </div>
+      <div id="touch-look-hint" aria-hidden="true">KÉO ĐỂ XOAY CAMERA</div>
     </div>
     <div id="damage-vignette"></div>
     <div id="lowhp-vignette"></div>
