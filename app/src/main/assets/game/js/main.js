@@ -498,7 +498,7 @@
     selectedHud=el; el.classList.add('hud-selected');
     const data=hudLayout[hudKey(el)]||hudDefaultLayout[hudKey(el)];
     sizeSlider.value=Math.round((data.scale||1)*100);
-    opacitySlider.value=Math.round((data.opacity==null?.85:data.opacity)*100);
+    opacitySlider.value=Math.round((data.opacity == null ? 0.85 : data.opacity)*100);
     hudEditor.querySelector('#hud-size-val').textContent=sizeSlider.value+'%';
     hudEditor.querySelector('#hud-opacity-val').textContent=opacitySlider.value+'%';
   }
