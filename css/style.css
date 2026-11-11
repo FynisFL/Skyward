@@ -744,3 +744,11 @@ kbd {
 #hud-editor-panel { top:auto; bottom:max(12px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(390px,94vw); }
 #touch-controls.hud-editing #touch-look-zone { background:rgba(80,160,220,.16); border:1px dashed rgba(143,208,255,.65); }
 @media (max-width:700px) { #hud-setup-bar { align-items:flex-start; flex-direction:column; gap:8px; padding:10px; } .hud-setup-actions { width:100%; } .hud-setup-actions button { flex:1; padding:10px 5px; font-size:9px; } #hud-editor-panel { width:min(340px,94vw); } }
+
+
+/* Custom HUD editor: detach grid controls so every action can be positioned independently. */
+#touch-controls.hud-editing #touch-actions { pointer-events:none!important; }
+#touch-controls.hud-editing #touch-actions [data-touch] { pointer-events:auto!important; }
+#touch-controls.hud-editing [data-hud-editable] { z-index:8; }
+#touch-controls.hud-editing #touch-look-zone { z-index:2; }
+#touch-controls.hud-editing #touch-stick { z-index:8; }
