@@ -674,3 +674,33 @@ kbd {
   #hud-right { bottom:calc(max(10px,env(safe-area-inset-bottom)) + 138px); }
   #touch-look-hint { display:none; }
 }
+
+/* ============ Mobile FPS Controls v2 ============ */
+@media (pointer: coarse) {
+  #touch-controls { isolation:isolate; z-index:40; pointer-events:none; }
+  #touch-stick { left:max(18px,env(safe-area-inset-left)); bottom:max(18px,env(safe-area-inset-bottom)); width:clamp(108px,15vw,140px); height:clamp(108px,15vw,140px); border:0; background:radial-gradient(circle,rgba(20,38,52,.5) 0 43%,rgba(8,18,27,.72) 45% 68%,rgba(8,18,27,.22) 70%); box-shadow:0 0 0 1px rgba(177,218,244,.36),inset 0 0 24px rgba(0,0,0,.28); pointer-events:auto; }
+  #touch-stick::after { display:none; }
+  #touch-stick .stick-ring { position:absolute; inset:12%; border:1px solid rgba(174,215,243,.34); border-radius:50%; pointer-events:none; }
+  #touch-stick-knob { width:43%; height:43%; background:linear-gradient(145deg,rgba(174,224,255,.78),rgba(52,112,150,.82)); border:1px solid rgba(232,247,255,.85); box-shadow:0 5px 16px rgba(0,0,0,.4),inset 0 1px 5px rgba(255,255,255,.25); }
+  .stick-caption { position:absolute; left:50%; bottom:8%; transform:translateX(-50%); color:rgba(215,237,250,.52); font-size:7px; font-weight:900; letter-spacing:.2em; pointer-events:none; }
+  #touch-look-zone { position:absolute; left:42%; right:clamp(190px,23vw,250px); top:14%; bottom:16%; z-index:1; border-radius:22px; pointer-events:auto; touch-action:none; background:transparent; }
+  #touch-look-zone.looking { background:rgba(117,184,224,.025); }
+  .look-caption { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); color:rgba(217,237,249,.14); font-size:8px; font-weight:800; letter-spacing:.28em; pointer-events:none; }
+  #touch-actions { z-index:3; right:max(14px,env(safe-area-inset-right)); bottom:max(14px,env(safe-area-inset-bottom)); width:clamp(206px,25vw,250px); grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:repeat(3,clamp(48px,7.6vh,62px)); gap:7px; }
+  .touch-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-width:0; min-height:0; padding:3px; border-radius:15px; border:1px solid rgba(161,205,232,.38); background:linear-gradient(145deg,rgba(24,43,57,.92),rgba(7,17,25,.92)); color:#eaf6fd; box-shadow:0 4px 12px rgba(0,0,0,.32),inset 0 1px rgba(255,255,255,.08); -webkit-tap-highlight-color:transparent; user-select:none; }
+  .touch-btn .touch-glyph { font-size:clamp(18px,2.5vw,24px); line-height:1; font-weight:700; color:#b9e5ff; }
+  .touch-btn .touch-label { font-size:clamp(6px,.72vw,8px); line-height:1.15; letter-spacing:.1em; font-weight:900; color:rgba(228,242,250,.78); }
+  .touch-btn.pressed { transform:scale(.94); background:linear-gradient(145deg,rgba(255,133,62,.95),rgba(137,57,26,.95)); border-color:#ffd1a6; }
+  .touch-btn.pressed .touch-glyph,.touch-btn.pressed .touch-label { color:#fff; }
+  .touch-btn.fire { grid-column:auto; min-height:0; border-radius:50%; aspect-ratio:1; border:2px solid rgba(255,191,143,.9); background:radial-gradient(circle at 35% 28%,rgba(255,171,105,.98),rgba(190,75,34,.96) 65%,rgba(93,37,23,.98)); box-shadow:0 0 0 4px rgba(255,137,74,.12),0 6px 18px rgba(0,0,0,.38),inset 0 2px 8px rgba(255,255,255,.2); }
+  .touch-btn.fire .fire-core { width:24px; height:24px; display:grid; place-items:center; border:2px solid rgba(255,255,255,.72); border-radius:50%; color:#fff; font-size:10px; box-shadow:0 0 0 4px rgba(255,255,255,.12); }
+  .touch-btn.fire .touch-label { font-size:9px; color:#fff; }
+  .touch-pause { z-index:5; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); width:42px; height:42px; border-radius:12px; pointer-events:auto; }
+  #touch-look-hint { z-index:2; right:clamp(190px,23vw,250px); top:50%; color:rgba(224,239,248,.28); font-size:7px; letter-spacing:.2em; }
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-height:520px) {
+  #touch-look-zone { top:12%; bottom:12%; right:clamp(174px,22vw,220px); }
+  #touch-actions { width:clamp(184px,23vw,220px); grid-template-rows:repeat(3,clamp(42px,8vh,52px)); gap:5px; }
+  .touch-btn .touch-glyph { font-size:18px; }
+  .touch-pause { width:36px; height:36px; }
+}

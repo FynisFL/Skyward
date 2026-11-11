@@ -465,25 +465,40 @@
     player.touchMove.x = dx / max; player.touchMove.y = dy / max;
     touchKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   }
-  canvas.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch' || G.state !== 'playing' || (e.clientX < window.innerWidth * 0.44) || lookPointer !== null) return;
-    e.preventDefault(); lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
-    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-  });
-  canvas.addEventListener('pointermove', (e) => {
-    if (e.pointerId !== lookPointer || G.state !== 'playing') return;
-    e.preventDefault();
-    const dx = e.clientX - lookX, dy = e.clientY - lookY; lookX = e.clientX; lookY = e.clientY;
-    player.look(dx * 1.12, dy * 1.12);
-  });
-  const endLook = (e) => { if (e.pointerId === lookPointer) lookPointer = null; };
-  canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+  // Dedicated look surface: controls and camera gestures never compete for
+  // the same pointer. Each finger keeps its own pointerId through capture.
+  const lookZone = document.getElementById('touch-look-zone');
+  if (lookZone) {
+    lookZone.addEventListener('pointerdown', (e) => {
+      if ((e.pointerType !== 'touch' && e.pointerType !== 'pen') || G.state !== 'playing' || lookPointer !== null) return;
+      e.preventDefault();
+      lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
+      try { lookZone.setPointerCapture(e.pointerId); } catch (err) {}
+      lookZone.classList.add('looking');
+    });
+    lookZone.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== lookPointer || G.state !== 'playing') return;
+      e.preventDefault();
+      const dx = e.clientX - lookX, dy = e.clientY - lookY;
+      lookX = e.clientX; lookY = e.clientY;
+      player.look(dx * 1.12, dy * 1.12);
+    });
+    const endLook = (e) => {
+      if (e.pointerId !== lookPointer) return;
+      lookPointer = null; lookZone.classList.remove('looking');
+    };
+    lookZone.addEventListener('pointerup', endLook);
+    lookZone.addEventListener('pointercancel', endLook);
+    lookZone.addEventListener('lostpointercapture', endLook);
+  }
   if (touchControls) {
     touchControls.querySelectorAll('[data-touch]').forEach(btn => {
       const action = btn.dataset.touch;
+      const activePointers = new Set();
       btn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
+        if ((e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
         e.preventDefault();
+        activePointers.add(e.pointerId);
         try { btn.setPointerCapture(e.pointerId); } catch (err) {}
         btn.classList.add('pressed');
         if (G.state !== 'playing') return;
@@ -498,7 +513,15 @@
         else if (action === 'strike') weapons.callSuper();
         else if (action === 'cycle') weapons.cycle(1);
       });
-      const release = () => { btn.classList.remove('pressed'); if (action === 'fire') triggerDown = false; if (action === 'aim') weapons.setAiming(false); if (action === 'sprint') player.keys.delete('ShiftLeft'); };
+      const release = (e) => {
+        if (!activePointers.has(e.pointerId)) return;
+        activePointers.delete(e.pointerId);
+        if (activePointers.size) return;
+        btn.classList.remove('pressed');
+        if (action === 'fire') triggerDown = false;
+        if (action === 'aim') weapons.setAiming(false);
+        if (action === 'sprint') player.keys.delete('ShiftLeft');
+      };
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
       btn.addEventListener('lostpointercapture', release);

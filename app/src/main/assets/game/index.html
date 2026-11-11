@@ -71,20 +71,23 @@
     <div id="enemy-overlay" aria-hidden="true"></div>
     <div id="damage-direction" aria-hidden="true"><span>INCOMING</span></div>
     <div id="touch-controls" class="hidden" aria-label="Điều khiển cảm ứng">
-      <div id="touch-stick" aria-label="Joystick di chuyển"><div id="touch-stick-knob"></div></div>
-      <button id="touch-pause" class="touch-btn touch-pause" data-touch="pause" aria-label="Tạm dừng">Ⅱ</button>
-      <div id="touch-actions" aria-label="Nút chiến đấu">
-        <button class="touch-btn action-dash" data-touch="dash" aria-label="Lao nhanh">LAO</button>
-        <button class="touch-btn action-grenade" data-touch="grenade" aria-label="Lựu đạn">LỰU ĐẠN</button>
-        <button class="touch-btn action-strike" data-touch="strike" aria-label="Không kích">KHÔNG KÍCH</button>
-        <button class="touch-btn action-reload" data-touch="reload" aria-label="Nạp đạn">NẠP</button>
-        <button class="touch-btn action-cycle" data-touch="cycle" aria-label="Đổi vũ khí">ĐỔI SÚNG</button>
-        <button class="touch-btn action-sprint" data-touch="sprint" aria-label="Chạy nhanh">CHẠY</button>
-        <button class="touch-btn action-aim" data-touch="aim" aria-label="Ngắm">NGẮM</button>
-        <button class="touch-btn action-jump" data-touch="jump" aria-label="Nhảy">NHẢY</button>
-        <button class="touch-btn fire" data-touch="fire" aria-label="Bắn">BẮN</button>
+      <div id="touch-stick" class="touch-stick-ui" aria-label="Joystick di chuyển">
+        <span class="stick-ring"></span><span id="touch-stick-knob"></span><span class="stick-caption">MOVE</span>
       </div>
-      <div id="touch-look-hint" aria-hidden="true">KÉO ĐỂ XOAY CAMERA</div>
+      <div id="touch-look-zone" aria-label="Vuốt để xoay camera"><span class="look-caption">LOOK</span></div>
+      <button id="touch-pause" class="touch-btn touch-pause" data-touch="pause" aria-label="Tạm dừng"><span class="touch-glyph">Ⅱ</span></button>
+      <div id="touch-actions" aria-label="Nút chiến đấu">
+        <button class="touch-btn action-dash" data-touch="dash" aria-label="Lao nhanh"><span class="touch-glyph">➤</span><span class="touch-label">DASH</span></button>
+        <button class="touch-btn action-grenade" data-touch="grenade" aria-label="Lựu đạn"><span class="touch-glyph">✹</span><span class="touch-label">GRENADE</span></button>
+        <button class="touch-btn action-strike" data-touch="strike" aria-label="Không kích"><span class="touch-glyph">✦</span><span class="touch-label">STRIKE</span></button>
+        <button class="touch-btn action-reload" data-touch="reload" aria-label="Nạp đạn"><span class="touch-glyph">↻</span><span class="touch-label">RELOAD</span></button>
+        <button class="touch-btn action-cycle" data-touch="cycle" aria-label="Đổi vũ khí"><span class="touch-glyph">⇄</span><span class="touch-label">SWAP</span></button>
+        <button class="touch-btn action-sprint" data-touch="sprint" aria-label="Chạy nhanh"><span class="touch-glyph">»</span><span class="touch-label">SPRINT</span></button>
+        <button class="touch-btn action-aim" data-touch="aim" aria-label="Ngắm"><span class="touch-glyph">⌖</span><span class="touch-label">AIM</span></button>
+        <button class="touch-btn action-jump" data-touch="jump" aria-label="Nhảy"><span class="touch-glyph">↑</span><span class="touch-label">JUMP</span></button>
+        <button class="touch-btn fire" data-touch="fire" aria-label="Bắn"><span class="fire-core">●</span><span class="touch-label">FIRE</span></button>
+      </div>
+      <div id="touch-look-hint" aria-hidden="true">DRAG TO LOOK</div>
     </div>
     <div id="damage-vignette"></div>
     <div id="lowhp-vignette"></div>

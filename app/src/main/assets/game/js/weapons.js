@@ -150,7 +150,7 @@ class WeaponSystem {
         asset.position.sub(center);
         const wrapper = new THREE.Group();
         wrapper.name = 'External_' + spec.name;
-        wrapper.rotation.y = Math.PI / 2;
+        wrapper.rotation.y = -Math.PI / 2;
         wrapper.scale.setScalar(spec.scale);
         wrapper.position.set(0, 0.01, -0.06);
         wrapper.add(asset);
