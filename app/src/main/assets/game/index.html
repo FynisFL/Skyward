@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SKYWARD SALVAGE — Hybrid 3D Final Build</title>
+<meta name="description" content="Skyward Salvage — tactical sci-fi FPS roguelite, chiến đấu theo wave, chạy offline trên trình duyệt." />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ==================== HUD ==================== -->
+  <div id="hud" class="hidden">
+    <div id="crosshair">
+      <i class="c-dot"></i><i class="c-l c-t"></i><i class="c-l c-b"></i><i class="c-l c-lft"></i><i class="c-l c-rgt"></i>
+    </div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+
+    <div id="hud-top">
+      <div id="minimap">
+        <canvas id="minimap-canvas" width="150" height="150"></canvas>
+        <div class="map-label">CIRRUS REACH</div>
+      </div>
+      <div id="wave-pill">
+        <span id="wave-label">ĐỢT 1/3</span>
+        <span id="objective-pill">LÀM SẠCH TURBINE</span>
+      </div>
+      <div id="score-box">
+        <div class="sb-label">ĐIỂM</div>
+        <div id="score-val">0</div>
+        <div id="combo-val" class="hidden">COMBO ×1.0</div>
+      </div>
+    </div>
+
+    <div id="hud-left">
+      <div id="hp-wrap">
+        <div class="hp-top"><span>MÁU</span><span id="hp-num">100</span></div>
+        <div id="hp-bar"><div id="hp-fill"></div></div>
+      </div>
+      <div id="class-tag"><span id="class-name">KỸ SƯ NHIỆT</span></div>
+    </div>
+
+    <div id="hud-right">
+      <div id="ammo-box">
+        <div id="wpn-name">SÚNG TRƯỜNG TỰ ĐỘNG</div>
+        <div id="wpn-slots">
+          <span class="slot" data-slot="1">1</span><span class="slot" data-slot="2">2</span><span class="slot" data-slot="3">3</span>
+        </div>
+        <div id="ammo-line"><span id="ammo-mag">32</span><span id="ammo-sep">/</span><span id="ammo-res">320</span></div>
+        <div id="reload-hint">R — NẠP ĐẠN</div>
+      </div>
+      <div id="abilities">
+        <div class="ab" id="ab-q"><div class="ab-cd"></div><div class="ab-key">Q</div><div class="ab-name">LAO</div></div>
+        <div class="ab" id="ab-e"><div class="ab-cd"></div><div class="ab-key">E</div><div class="ab-name">LỰU ĐẠN</div></div>
+        <div class="ab" id="ab-f"><div class="ab-cd"></div><div class="ab-key">F</div><div class="ab-name">KHÔNG KÍCH</div></div>
+      </div>
+    </div>
+
+    <div id="hud-bottom">
+      <div id="timer">00:00</div>
+      <div id="enemies-left">0 KẺ THÙ</div>
+    </div>
+
+    <div id="wave-banner" class="hidden">
+      <div id="wave-title">ĐỢT 1</div>
+      <div id="wave-sub">3 ĐỢT</div>
+    </div>
+    <div id="killfeed"></div>
+    <div id="enemy-overlay" aria-hidden="true"></div>
+    <div id="damage-direction" aria-hidden="true"><span>INCOMING</span></div>
+    <div id="touch-controls" class="hidden" aria-label="Điều khiển cảm ứng">
+      <div id="touch-stick"><div id="touch-stick-knob"></div></div>
+      <div id="touch-actions">
+        <button class="touch-btn fire" data-touch="fire">BẮN</button>
+        <button class="touch-btn" data-touch="aim">NGẮM</button>
+        <button class="touch-btn" data-touch="jump">NHẢY</button>
+        <button class="touch-btn" data-touch="sprint">CHẠY</button>
+        <button class="touch-btn" data-touch="reload">NẠP</button>
+        <button class="touch-btn" data-touch="dash">Q</button>
+        <button class="touch-btn" data-touch="grenade">E</button>
+        <button class="touch-btn" data-touch="strike">F</button>
+        <button class="touch-btn" data-touch="cycle">ĐỔI</button>
+        <button class="touch-btn" data-touch="pause">DỪNG</button>
+      </div>
+    </div>
+    <div id="damage-vignette"></div>
+    <div id="lowhp-vignette"></div>
+  </div>
+
+  <!-- ==================== MENU ==================== -->
+  <div id="menu" class="screen">
+    <div class="menu-top">
+      <div class="brand"><span class="brand-mark">◈</span> SKYWARD <b>SALVAGE</b></div>
+      <nav class="main-nav">
+        <button class="nav-btn active" data-nav="play">CHƠI</button>
+        <button class="nav-btn" data-nav="dest">ĐIỂM ĐẾN</button>
+        <button class="nav-btn" data-nav="eng">KỸ SƯ</button>
+      </nav>
+      <button id="btn-settings" class="icon-btn">⚙ CÀI ĐẶT</button>
+    </div>
+
+    <div class="menu-body">
+      <div class="hero">
+        <div class="ep">EPISODE 01</div>
+        <div class="ep-sub">TIẾNG VỌNG CỦA LẦN LÊN CAO ĐẦU TIÊN</div>
+        <h1 class="hero-title">RIDE THE<br />UPDRAFT.</h1>
+        <p class="hero-desc">
+          Những vì sao đang vẫy gọi, Kỹ sư. Cuộc phiêu lưu tiếp theo của bạn bắt đầu tại
+          <b>Cirrus Reach</b> — nơi những cỗ máy cũ vẫn còn thở, và mỗi lân mây là một lần lên cao.
+        </p>
+        <div class="hero-actions">
+          <button id="btn-launch" class="btn-primary">LAUNCH MISSION <span class="arrow">→</span></button>
+          <div class="hero-meta"><span>CHƠI MIỄN PHÍ</span><i>/</i><span id="weather">CỬA SỔ THỜI TIẾT: MỞ</span></div>
+        </div>
+      </div>
+
+      <div class="engineer-card">
+        <div class="ec-head">KỸ SƯ CỦA BẠN</div>
+        <div class="ec-body">
+          <div class="ec-icon">⚙</div>
+          <div class="ec-info">
+            <div id="menu-class-name">Kỹ sư nhiệt</div>
+            <div id="menu-class-sub">Sát thương +20% · Máu −10%</div>
+          </div>
+        </div>
+        <div class="ec-foot"><span id="best-score">ĐIỂM CAO NHẤT: 0</span></div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-head"><span>HỒ SƠ KỸ SƯ</span><b id="profile-level">LV. 1</b></div>
+        <div class="progress-xp"><i id="profile-xp-fill"></i></div>
+        <div class="progress-foot"><span id="profile-xp">0 / 250 XP</span><span id="profile-stats">0 NHIỆM VỤ · 0 HẠ GỤC</span></div>
+        <div class="progress-unlocks" id="profile-unlocks">MỞ KHÓA: Protocol Blackout · Endless Protocol</div>
+        <div class="progress-achievements" id="profile-achievements">ACHIEVEMENTS 0/4</div>
+      </div>
+    </div>
+
+    <div class="menu-dest">
+      <div class="md-head">CHỌN CHUYẾN PHIÊU LƯU TIẾP THEO</div>
+      <div class="md-cards" id="dest-cards"></div>
+    </div>
+
+    <div class="menu-foot">
+      <button class="foot-btn" id="btn-controls">? ĐIỀU KHIỂN</button>
+      <button class="foot-btn" id="btn-mute">BẬT ÂM THANH</button>
+    </div>
+  </div>
+
+  <!-- ==================== DESTINATIONS ==================== -->
+  <div id="dest-screen" class="screen hidden">
+    <div class="panel">
+      <button class="back-btn" data-back>← QUAY LẠI</button>
+      <h2 class="panel-title">ĐIỂM ĐẾN</h2>
+      <p class="panel-sub">Mỗi chuyến đi là một đặc tính chiến đấu khác nhau.</p>
+      <div class="card-grid" id="dest-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== ENGINEER ==================== -->
+  <div id="eng-screen" class="screen hidden">
+    <div class="panel">
+      <button class="back-btn" data-back>← QUAY LẠI</button>
+      <h2 class="panel-title">CHỌN KỸ SƯ</h2>
+      <p class="panel-sub">Lớp kỹ sư quyết định chỉ số và cách bạn sống sót.</p>
+      <div class="card-grid" id="eng-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== SETTINGS ==================== -->
+  <div id="settings-screen" class="screen hidden">
+    <div class="panel">
+      <button class="back-btn" data-back>← QUAY LẠI</button>
+      <h2 class="panel-title">CÀI ĐẶT</h2>
+      <div class="setting-row">
+        <label for="set-sens">Độ nhạy chuột</label>
+        <input type="range" id="set-sens" min="0.3" max="2.5" step="0.1" value="1" />
+        <span class="set-val" id="set-sens-val">1.0</span>
+      </div>
+      <div class="setting-row">
+        <label for="set-master">Âm lượng tổng</label>
+        <input type="range" id="set-master" min="0" max="1" step="0.05" value="0.8" />
+        <span class="set-val" id="set-master-val">80%</span>
+      </div>
+      <div class="setting-row">
+        <label for="set-vol">Hiệu ứng (SFX)</label>
+        <input type="range" id="set-vol" min="0" max="1" step="0.05" value="0.6" />
+        <span class="set-val" id="set-vol-val">60%</span>
+      </div>
+      <div class="setting-row">
+        <label for="set-music-vol">Nhạc nền</label>
+        <input type="range" id="set-music-vol" min="0" max="1" step="0.05" value="0.45" />
+        <span class="set-val" id="set-music-vol-val">45%</span>
+      </div>
+      <div class="setting-row">
+        <label for="set-invert">Đảo trục Y</label>
+        <input type="checkbox" id="set-invert" />
+        <span class="set-val"></span>
+      </div>
+      <div class="setting-row">
+        <label for="set-motion">Giảm chuyển động</label>
+        <input type="checkbox" id="set-motion" />
+        <span class="set-val"></span>
+      </div>
+      <div class="setting-row">
+        <label for="set-quality">Chất lượng đồ họa</label>
+        <select id="set-quality"><option value="low">Thấp</option><option value="med" selected>Trung bình</option><option value="high">Cao</option></select>
+        <span class="set-val"></span>
+      </div>
+      <button class="btn-ghost wide" id="btn-reset-best">XÓA ĐIỂM CAO NHẤT</button>
+    </div>
+  </div>
+
+  <!-- ==================== CONTROLS ==================== -->
+  <div id="controls-screen" class="screen hidden">
+    <div class="panel">
+      <button class="back-btn" data-back>← QUAY LẠI</button>
+      <h2 class="panel-title">ĐIỀU KHIỂN</h2>
+      <div class="controls-grid">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Di chuyển</span></div>
+        <div><kbd>CHUỘT</kbd><span>Nhìn / ngắm</span></div>
+        <div><kbd>CHUỘT TRÁI</kbd><span>Bắn</span></div>
+        <div><kbd>CHUỘT PHẢI</kbd><span>Ngắm chính xác</span></div>
+        <div><kbd>SHIFT</kbd><span>Chạy nhanh</span></div>
+        <div><kbd>SPACE</kbd><span>Nhảy</span></div>
+        <div><kbd>R</kbd><span>Nạp đạn</span></div>
+        <div><kbd>X</kbd><span>Kiểm tra vũ khí</span></div>
+        <div><kbd>Q</kbd><span>Lao nhanh</span></div>
+        <div><kbd>E</kbd><span>Lựu đạn</span></div>
+        <div><kbd>F</kbd><span>Không kích</span></div>
+        <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><span>Đổi vũ khí</span></div>
+        <div><kbd>ESC</kbd><span>Tạm dừng</span></div>
+        <div class="touch-control-note"><kbd>TOUCH</kbd><span>Joystick di chuyển · kéo vùng phải để nhìn · nút cảm ứng để chiến đấu</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PAUSE ==================== -->
+  <div id="pause-screen" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="panel-title">TẠM DỪNG</h2>
+      <p class="panel-sub">Hít một hơi. Cơn giông vẫn đang chờ.</p>
+      <button class="btn-primary wide" id="btn-resume">TIẾP TỤC</button>
+      <button class="btn-ghost wide" id="btn-pause-settings">CÀI ĐẶT</button>
+      <button class="btn-ghost wide" id="btn-quit">RỜI KHỎI TRẬN</button>
+    </div>
+  </div>
+
+  <!-- ==================== GAME OVER ==================== -->
+  <div id="over-screen" class="screen hidden">
+    <div class="panel narrow">
+      <div class="over-head">
+        <div class="ep">KẾT THÚC CHUYẾN</div>
+        <h2 class="over-title" id="over-title">CÂU CHUYỆN CỦA BẠN CHƯA KẾT THÚC.</h2>
+        <p class="panel-sub" id="over-sub">Con giông đã thắng trận này. Hít thở sâu, thay đổi chiến thuật và vùng lên một lần nữa.</p>
+      </div>
+      <div class="rank-wrap">
+        <div class="rank-badge" id="rank-badge">S</div>
+        <div class="rank-label">XẾP HẠNG</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat"><div class="st-label">ĐIỂM NHIỆM VỤ</div><div class="st-val" id="st-score">0</div></div>
+        <div class="stat"><div class="st-label">LOẠI BỎ</div><div class="st-val" id="st-kills">0</div></div>
+        <div class="stat"><div class="st-label">THỜI GIAN</div><div class="st-val" id="st-time">00:00</div></div>
+        <div class="stat"><div class="st-label">ĐỘ CHÍNH XÁC</div><div class="st-val" id="st-acc">0%</div></div>
+      </div>
+      <div class="over-note" id="over-note">Tiến trình kỹ sư của bạn đã được lưu.</div>
+      <button class="btn-primary wide" id="btn-retry">VƯƠN LÊN LẦN NỮA <span class="arrow">→</span></button>
+      <button class="btn-ghost wide" id="btn-menu">TRỞ LẠI SÂN</button>
+    </div>
+  </div>
+
+  <!-- ==================== ROGUELITE UPGRADE ==================== -->
+  <div id="upgrade-screen" class="screen hidden" style="z-index:55">
+    <div class="panel upgrade-panel">
+      <div class="ep">ENDLESS PROTOCOL · FIELD REQUISITION</div>
+      <h2 class="panel-title">CHỌN NÂNG CẤP</h2>
+      <p class="panel-sub">Chọn một mô-đun trước khi wave tiếp theo bắt đầu.</p>
+      <div id="upgrade-cards" class="upgrade-grid"></div>
+    </div>
+  </div>
+
+  <!-- ==================== LOADING / ERROR ==================== -->
+  <div id="loading" class="screen">
+    <div class="loader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">ĐANG DỰNG CIRUS REACH…</div>
+    </div>
+  </div>
+  <div id="fatal" class="screen hidden">
+    <div class="panel narrow">
+      <h2 class="panel-title">KHÔNG THỂ KHỞI ĐỘNG</h2>
+      <p class="panel-sub" id="fatal-msg">Trình duyệt của bạn không hỗ trợ WebGL.</p>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>\n<script src="js/scifi_assets.js"></script>\n<script src="js/scifi_loader.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/decals.js"></script>
+<script src="js/vfx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/music.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/world.js"></script>
+<script src="js/player.js"></script>
+<script src="js/weapons.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
