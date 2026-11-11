@@ -100,7 +100,7 @@ class UI {
     const h = this.h;
     const on = (id, fn) => { const e = $(id); if (e) e.addEventListener('click', () => { Sound.unlock(); Music.init(); Music.resume(); Sound.ui(); fn(); }); };
 
-    on('btn-launch', () => h.play());
+    on('btn-launch', () => (h.prepare || h.play)());
     on('btn-settings', () => this.show('settings'));
     on('btn-controls', () => this.show('controls'));
     on('btn-resume', () => h.resume());
@@ -319,7 +319,8 @@ class UI {
     this.el.upgradeCards.innerHTML = '';
     options.forEach((o, index) => {
       const b = document.createElement('button'); b.className = 'upgrade-card';
-      b.innerHTML = `<div class="uc-index">MODULE 0${index + 1}</div><div class="uc-title">${o.title}</div><div class="uc-desc">${o.desc}</div><div class="uc-select">CHỌN MÔ-ĐUN →</div>`;
+      b.dataset.rarity = o.rarity || 'common';
+      b.innerHTML = `<div class="uc-index">MODULE 0${index + 1} · ${(o.rarity || 'COMMON').toUpperCase()}</div><div class="uc-title">${o.title}</div><div class="uc-desc">${o.desc}</div><div class="uc-select">CÀI ĐẶT MÔ-ĐUN →</div>`;
       b.addEventListener('click', () => { Sound.ui(); this.el.upgrade.classList.add('hidden'); onChoose(o.id); });
       this.el.upgradeCards.appendChild(b);
     });

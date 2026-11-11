@@ -595,8 +595,11 @@ class WaveManager {
       }
     } else if (this.state === 'fighting') {
       if (this.spawnQueue.length === 0 && this.aliveCount() === 0) {
-        this.state = this.endless ? 'upgrade' : 'intermission';
-        this.timer = this.endless ? 0 : 3.4;
+        const clearedWave = this.waveIndex;
+        const finalWave = !this.endless && clearedWave >= this.waveTotal;
+        const offerUpgrade = this.endless || (!finalWave && clearedWave % 2 === 0);
+        this.state = offerUpgrade ? 'upgrade' : 'intermission';
+        this.timer = offerUpgrade ? 0 : 3.4;
         this.onWaveClear(this.waveIndex, this.endless ? '∞' : this.waveTotal);
       }
     }

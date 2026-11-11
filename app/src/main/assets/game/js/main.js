@@ -158,6 +158,7 @@
       G.score += points;
       ui.hitmarker(true);
       ui.killfeed((e.isBoss ? '<b>COMMANDER ELIMINATED</b> ' : 'Hạ <b>' + e.type.toUpperCase() + '</b> ') + '+' + points);
+      if (player.mods.vampiric) player.heal(player.mods.vampiric);
       if (G.mission.mods && G.mission.mods.endless && Math.random() < (e.isBoss ? 1 : 0.24)) spawnPickup(e.group.position, e.isBoss ? 'both' : (Math.random() < 0.5 ? 'health' : 'ammo'));
     }
   });
@@ -176,7 +177,9 @@
       ui.waveBanner('ĐỢT ' + n + ' XONG', '+250 ĐIỂM');
       ui.killfeed('Dọn sạch đợt <b>' + n + '</b> +250');
       Sound.win();
-      if (G.mission.mods && G.mission.mods.endless) presentUpgradeChoice();
+      const endless = !!(G.mission.mods && G.mission.mods.endless);
+      const finalWave = !endless && n >= (G.mission.mods.waveCount || 3);
+      if (endless || (!finalWave && n % 2 === 0)) presentUpgradeChoice();
     },
     onAllClear: () => { endRound(true); },
     onPlayerHit: (dmg, pos) => {
@@ -193,6 +196,7 @@
   const ui = new UI({
     isMissionUnlocked: missionUnlocked,
     play: startRound,
+    prepare: prepareHudSetup,
     resume: resumeGame,
     toMenu: toMenu,
     resetBest: () => {
@@ -306,17 +310,30 @@
   }
 
   const UPGRADE_POOL = [
-    { id: 'overclock', title: 'OVERclock Core', desc: 'Sát thương vũ khí và kỹ năng +15%.' },
-    { id: 'reinforced', title: 'Reinforced Plating', desc: 'Tăng 25 máu tối đa và hồi 25 máu.' },
-    { id: 'gyro', title: 'Gyro Stabilizer', desc: 'Tốc độ di chuyển +8%, hồi chiêu kỹ năng nhanh hơn 10%.' },
-    { id: 'fast-hands', title: 'Combat Reflex', desc: 'Tốc độ bắn +10%, tốc độ nạp đạn +18%.' },
-    { id: 'scavenger', title: 'Field Scavenger', desc: 'Bổ sung đạn dự trữ và hồi 20 máu.' },
-    { id: 'surge', title: 'Capacitor Surge', desc: 'Giảm 12% thời gian hồi Q, E và F.' }
+    { id:'overclock', title:'Overclock Core', rarity:'rare', desc:'Sát thương vũ khí và kỹ năng +15%.' },
+    { id:'reinforced', title:'Reinforced Plating', rarity:'common', desc:'Tăng 25 máu tối đa và hồi 25 máu.' },
+    { id:'gyro', title:'Gyro Stabilizer', rarity:'common', desc:'Tốc độ di chuyển +8%, hồi chiêu kỹ năng nhanh hơn 10%.' },
+    { id:'fast-hands', title:'Combat Reflex', rarity:'rare', desc:'Tốc độ bắn +10%, tốc độ nạp đạn +18%.' },
+    { id:'scavenger', title:'Field Scavenger', rarity:'common', desc:'Bổ sung đạn dự trữ và hồi 20 máu.' },
+    { id:'surge', title:'Capacitor Surge', rarity:'rare', desc:'Giảm 12% thời gian hồi Q, E và F.' },
+    { id:'critical', title:'Critical Protocol', rarity:'epic', desc:'Tăng sát thương gây ra thêm 20%.' },
+    { id:'vampiric', title:'Vampiric Core', rarity:'epic', desc:'Hồi 2 máu khi hạ gục kẻ địch.' },
+    { id:'last-stand', title:'Last Stand', rarity:'legendary', desc:'Khi máu dưới 30%, sát thương tăng 25%.' }
   ];
+  let offeredUpgradeIds = [];
   function presentUpgradeChoice() {
-    const pool = UPGRADE_POOL.slice();
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
-    ui.showUpgrade(pool.slice(0, 3), (id) => {
+    const weights = { common:55, rare:28, epic:14, legendary:3 };
+    const available = UPGRADE_POOL.filter(x => !offeredUpgradeIds.includes(x.id));
+    const pool = (available.length >= 3 ? available : UPGRADE_POOL).slice();
+    const picks = [];
+    while (picks.length < 3 && pool.length) {
+      const total = pool.reduce((sum,x) => sum + weights[x.rarity],0);
+      let roll = Math.random()*total, chosen = pool[0];
+      for (const item of pool) { roll -= weights[item.rarity]; if (roll <= 0) { chosen=item; break; } }
+      picks.push(chosen); pool.splice(pool.indexOf(chosen),1);
+    }
+    ui.showUpgrade(picks, (id) => {
+      offeredUpgradeIds.push(id);
       const upgrade = UPGRADE_POOL.find(x => x.id === id);
       if (id === 'overclock') player.mods.damage *= 1.15;
       else if (id === 'reinforced') { player.maxHealth += 25; player.heal(25); }
@@ -324,6 +341,9 @@
       else if (id === 'fast-hands') { player.mods.fireRate = (player.mods.fireRate || 1) * 1.1; player.mods.reloadSpeed = (player.mods.reloadSpeed || 1) * 1.18; }
       else if (id === 'scavenger') { WEAPON_ORDER.forEach(k => weapons.state[k].reserve = Math.min(WEAPONS[k].reserve * 2, weapons.state[k].reserve + WEAPONS[k].mag * 2)); player.heal(20); }
       else if (id === 'surge') player.mods.cooldown *= 0.88;
+      else if (id === 'critical') player.mods.damage *= 1.20;
+      else if (id === 'vampiric') player.mods.vampiric = (player.mods.vampiric || 0) + 2;
+      else if (id === 'last-stand') player.mods.lastStand = true;
       ui.killfeed('Đã cài <b>' + (upgrade ? upgrade.title : 'MODULE') + '</b>');
       waves.continueAfterUpgrade();
     });
@@ -440,11 +460,15 @@
   // ---------- custom HUD editor ----------
   let hudEditMode = false;
   let hudWasPaused = false;
+  let hudSetupMode = false;
   const HUD_LAYOUT_KEY = 'skyward_hud_layout_v1';
   const hudEditable = touchControls ? Array.from(touchControls.querySelectorAll('[data-touch], #touch-stick, #touch-look-zone')) : [];
   let hudLayout = {};
   try { hudLayout = JSON.parse(localStorage.getItem(HUD_LAYOUT_KEY) || '{}') || {}; } catch (e) { hudLayout = {}; }
-  const editHudBtn = document.getElementById('touch-edit-hud');
+  const hudSetupBar = document.createElement('section');
+  hudSetupBar.id = 'hud-setup-bar'; hudSetupBar.className = 'hidden';
+  hudSetupBar.innerHTML = '<div class="hud-setup-copy"><b>HUD SETUP</b><span>Kéo thả các nút để sắp xếp theo thói quen của bạn.</span></div><div class="hud-setup-actions"><button id="hud-setup-edit">CHỈNH BỐ CỤC</button><button id="hud-setup-start" class="primary">START MISSION →</button><button id="hud-setup-back">QUAY LẠI</button></div>';
+  if (touchControls) touchControls.appendChild(hudSetupBar);
   const hudEditor = document.createElement('section');
   hudEditor.id = 'hud-editor-panel';
   hudEditor.className = 'hidden';
@@ -488,9 +512,10 @@
     hudEditor.querySelector('#hud-size-val').textContent=sizeSlider.value+'%';
     hudEditor.querySelector('#hud-opacity-val').textContent=opacitySlider.value+'%';
   }
-  function enterHudEdit() {
-    if (!touchControls || (G.state!=='playing' && G.state!=='paused') || hudEditMode) return;
+  function enterHudEdit(fromSetup) {
+    if (!touchControls || (G.state!=='playing' && G.state!=='paused' && G.state!=='setup') || hudEditMode) return;
     hudWasPaused = G.state === 'paused';
+    if (fromSetup) hudSetupMode = true;
     const settingsScreen = document.getElementById('settings-screen');
     if (settingsScreen) settingsScreen.classList.add('hidden');
     hudSnapshot=JSON.stringify(hudLayout); hudEditMode=true;
@@ -507,6 +532,7 @@
     hudEditable.forEach(el=>{delete el.dataset.hudEditable;el.classList.remove('hud-selected');});
     selectedHud=null;
     if (hudWasPaused) ui.show('pause', true);
+    if (hudSetupMode) hudSetupBar.classList.remove('hidden');
     hudWasPaused = false;
   }
   if (touchControls) {
@@ -527,12 +553,18 @@
       el.addEventListener('click',e=>{if(hudEditMode){e.preventDefault();e.stopImmediatePropagation();selectHud(el);}},true);
     });
   }
+  hudSetupBar.querySelector('#hud-setup-edit').addEventListener('click', () => { hudSetupBar.classList.add('hidden'); enterHudEdit(true); });
+  hudSetupBar.querySelector('#hud-setup-start').addEventListener('click', () => startRound());
+  hudSetupBar.querySelector('#hud-setup-back').addEventListener('click', () => {
+    hudSetupMode = false; hudSetupBar.classList.add('hidden'); touchControls.classList.add('hidden');
+    ui.el.hud.classList.add('hidden'); G.state = 'menu'; ui.show('menu');
+  });
   const settingsHudBtn = document.getElementById('btn-custom-hud');
   if(settingsHudBtn) settingsHudBtn.addEventListener('click', () => {
     if (G.state === 'paused' || G.state === 'playing') enterHudEdit();
     else {
       const note = document.getElementById('hud-setting-note');
-      if (note) note.textContent = 'Hãy bắt đầu trận, nhấn Pause rồi mở Settings để chỉnh HUD.';
+      if (note) note.textContent = 'Dùng HUD Setup trước trận để sắp xếp bố cục điều khiển.';
     }
   });
   sizeSlider.addEventListener('input',updateSelectedHud); opacitySlider.addEventListener('input',updateSelectedHud);
@@ -651,6 +683,7 @@
 
   // ---------- máy trạng thái ----------
   function startRound() {
+    if (hudSetupMode) { hudSetupMode = false; hudSetupBar.classList.add('hidden'); }
     Sound.unlock();
     Music.init();
     Music.setScene('combat');
@@ -665,6 +698,7 @@
     G.shotsFired = 0; G.shotsHit = 0;
     G.wave = 0; G.totalWaves = G.mission.mods.endless ? Infinity : (G.mission.mods.waveCount || 3); G.elapsed = 0; G.timeLeft = 0;
     G.combo = 0; G.multiplier = 1; G.comboTimer = 0; G.xpEarned = 0;
+    offeredUpgradeIds = [];
     G.overTimer = 0; G.timeScale = 1;
     G.victory = false; G.newBest = false;
     player.mods = Object.assign({}, G.cls.mods);
@@ -675,6 +709,14 @@
     ui.waveBanner('BẮT ĐẦU', G.mission.title.toUpperCase());
     lockHint();
     if (!touchCapable) canvas.requestPointerLock && canvas.requestPointerLock();
+  }
+
+  function prepareHudSetup() {
+    if (!touchCapable) { startRound(); return; }
+    G.state = 'setup'; triggerDown = false; dragging = false; player.keys.clear();
+    player.touchMove.x = 0; player.touchMove.y = 0;
+    ui.hideAll(); ui.el.hud.classList.remove('hidden'); touchControls.classList.remove('hidden');
+    hudSetupMode = true; hudSetupBar.classList.remove('hidden'); enterHudEdit(true);
   }
 
   function pauseGame() {
