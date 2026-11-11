@@ -318,7 +318,7 @@
     { id:'surge', title:'Capacitor Surge', rarity:'rare', desc:'Giảm 12% thời gian hồi Q, E và F.' },
     { id:'critical', title:'Critical Protocol', rarity:'epic', desc:'Tăng sát thương gây ra thêm 20%.' },
     { id:'vampiric', title:'Vampiric Core', rarity:'epic', desc:'Hồi 2 máu khi hạ gục kẻ địch.' },
-    { id:'last-stand', title:'Last Stand', rarity:'legendary', desc:'Khi máu dưới 30%, sát thương tăng 25%.' }
+    { id:'last-stand', title:'Last Stand', rarity:'legendary', desc:'Sát thương vũ khí và kỹ năng +25%.' }
   ];
   let offeredUpgradeIds = [];
   function presentUpgradeChoice() {
@@ -343,7 +343,7 @@
       else if (id === 'surge') player.mods.cooldown *= 0.88;
       else if (id === 'critical') player.mods.damage *= 1.20;
       else if (id === 'vampiric') player.mods.vampiric = (player.mods.vampiric || 0) + 2;
-      else if (id === 'last-stand') player.mods.lastStand = true;
+      else if (id === 'last-stand') player.mods.damage *= 1.25;
       ui.killfeed('Đã cài <b>' + (upgrade ? upgrade.title : 'MODULE') + '</b>');
       waves.continueAfterUpgrade();
     });
@@ -515,7 +515,7 @@
   function enterHudEdit(fromSetup) {
     if (!touchControls || (G.state!=='playing' && G.state!=='paused' && G.state!=='setup') || hudEditMode) return;
     hudWasPaused = G.state === 'paused';
-    if (fromSetup) hudSetupMode = true;
+    if (fromSetup) { hudSetupMode = true; hudSetupBar.classList.add('hidden'); }
     const settingsScreen = document.getElementById('settings-screen');
     if (settingsScreen) settingsScreen.classList.add('hidden');
     hudSnapshot=JSON.stringify(hudLayout); hudEditMode=true;
