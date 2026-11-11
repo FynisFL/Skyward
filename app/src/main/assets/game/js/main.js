@@ -617,6 +617,9 @@
   });
 
   let stickPointer = null, lookPointer = null, lookX = 0, lookY = 0;
+  // Accumulate touch-look movement and apply it once per rendered frame.
+  // This avoids camera micro-stutter when Android/WebView emits uneven pointermove bursts.
+  let pendingLookX = 0, pendingLookY = 0;
   if (touchStick) {
     touchStick.addEventListener('pointerdown', (e) => {
       if (e.pointerType !== 'touch' && e.pointerType !== 'pen') return;
@@ -659,13 +662,23 @@
     lookZone.addEventListener('pointermove', (e) => {
       if (e.pointerId !== lookPointer || G.state !== 'playing') return;
       e.preventDefault();
-      const dx = e.clientX - lookX, dy = e.clientY - lookY;
-      lookX = e.clientX; lookY = e.clientY;
-      player.look(dx * 1.12, dy * 1.12);
+      const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
+      const samples = events && events.length ? events : [e];
+      let dx = 0, dy = 0;
+      for (const sample of samples) {
+        dx += sample.clientX - lookX;
+        dy += sample.clientY - lookY;
+        lookX = sample.clientX;
+        lookY = sample.clientY;
+      }
+      pendingLookX += dx;
+      pendingLookY += dy;
     });
     const endLook = (e) => {
       if (e.pointerId !== lookPointer) return;
-      lookPointer = null; lookZone.classList.remove('looking');
+      lookPointer = null; lookX = 0; lookY = 0;
+      pendingLookX = 0; pendingLookY = 0;
+      lookZone.classList.remove('looking');
     };
     lookZone.addEventListener('pointerup', endLook);
     lookZone.addEventListener('pointercancel', endLook);
@@ -953,6 +966,11 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
+    if (G.state === 'playing' && (pendingLookX !== 0 || pendingLookY !== 0)) {
+      const dx = pendingLookX, dy = pendingLookY;
+      pendingLookX = 0; pendingLookY = 0;
+      player.look(dx * 1.12, dy * 1.12);
+    }
     let frameDt = (now - last) / 1000;
     last = now;
     if (!(frameDt > 0)) frameDt = 0.016;
