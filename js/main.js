@@ -461,7 +461,7 @@
   let hudEditMode = false;
   let hudWasPaused = false;
   let hudSetupMode = false;
-  const HUD_LAYOUT_KEY = 'skyward_hud_layout_v1';
+  const HUD_LAYOUT_KEY = 'skyward_hud_layout_v2';
   const hudEditable = touchControls ? Array.from(touchControls.querySelectorAll('[data-touch], #touch-stick, #touch-look-zone')) : [];
   let hudLayout = {};
   try { hudLayout = JSON.parse(localStorage.getItem(HUD_LAYOUT_KEY) || '{}') || {}; } catch (e) { hudLayout = {}; }
@@ -479,6 +479,8 @@
   function hudKey(el) { return el.id || el.dataset.touch || 'look'; }
   const hudDefaultLayout = {};
   const hudOriginalStyles = new Map();
+  const hudActions = touchControls ? touchControls.querySelector('#touch-actions') : null;
+  let hudActionsOriginalStyle = '';
   function itemCenter(el) {
     const r=el.getBoundingClientRect(), p=touchControls.getBoundingClientRect();
     return {x:((r.left+r.width/2-p.left)/p.width)*100,y:((r.top+r.height/2-p.top)/p.height)*100};
@@ -491,7 +493,7 @@
     el.style.transform='translate(-50%,-50%)';
     el.style.width=(data.baseW*data.scale)+'px';
     el.style.height=(data.baseH*data.scale)+'px';
-    el.style.opacity=data.opacity;
+    el.style.opacity=data.opacity == null ? 0.85 : data.opacity;
   }
   function selectHud(el) {
     if(selectedHud)selectedHud.classList.remove('hud-selected');
@@ -518,6 +520,8 @@
     if (settingsScreen) settingsScreen.classList.add('hidden');
     hudSnapshot=JSON.stringify(hudLayout);
     hudOriginalStyles.clear();
+    hudActionsOriginalStyle = hudActions ? hudActions.style.cssText : '';
+    if (hudActions) hudActions.style.position = 'static';
     hudEditable.forEach(el=>{
       hudOriginalStyles.set(el,el.style.cssText);
       const k=hudKey(el), data=hudLayout[k]||hudDefaultLayout[k];
@@ -535,6 +539,7 @@
     else {
       hudLayout=JSON.parse(hudSnapshot||'{}');
       hudEditable.forEach(el=>{el.style.cssText=hudOriginalStyles.get(el)||'';});
+      if (hudActions) hudActions.style.cssText = hudActionsOriginalStyle;
     }
     hudEditMode=false; touchControls.classList.remove('hud-editing'); hudEditor.classList.add('hidden');
     hudEditable.forEach(el=>{delete el.dataset.hudEditable;el.classList.remove('hud-selected');});
@@ -548,14 +553,30 @@
       const key=hudKey(el), rect=el.getBoundingClientRect(), center=itemCenter(el);
       el.dataset.hudBaseW=rect.width; el.dataset.hudBaseH=rect.height;
       hudDefaultLayout[key]={x:center.x,y:center.y,scale:1,opacity:.85,baseW:rect.width,baseH:rect.height};
-      if(hudLayout[key]) applyHudItem(el,hudLayout[key]);
+    });
+    if (hudActions && hudLayout && Object.keys(hudLayout).length) hudActions.style.position = 'static';
+    hudEditable.forEach(el=>{
+      const key=hudKey(el);
+      if(hudLayout[key]) {
+        hudLayout[key]={...hudDefaultLayout[key],...hudLayout[key],baseW:hudDefaultLayout[key].baseW,baseH:hudDefaultLayout[key].baseH};
+        applyHudItem(el,hudLayout[key]);
+      }
       el.addEventListener('pointerdown',e=>{
         if(!hudEditMode || (e.pointerType!=='touch' && e.pointerType!=='pen')) return;
         e.preventDefault(); e.stopImmediatePropagation(); selectHud(el);
         try{el.setPointerCapture(e.pointerId);}catch(err){}
         const parent=touchControls.getBoundingClientRect(), startX=e.clientX, startY=e.clientY;
         const current=hudLayout[key] || {x:((el.getBoundingClientRect().left+el.offsetWidth/2-parent.left)/parent.width)*100,y:((el.getBoundingClientRect().top+el.offsetHeight/2-parent.top)/parent.height)*100,scale:1,opacity:.85,baseW:Number(el.dataset.hudBaseW),baseH:Number(el.dataset.hudBaseH)};
-        const move=ev=>{if(ev.pointerId!==e.pointerId)return;ev.preventDefault();const x=Math.max(2,Math.min(98,current.x+(ev.clientX-startX)/parent.width*100));const y=Math.max(3,Math.min(97,current.y+(ev.clientY-startY)/parent.height*100));hudLayout[key]={...current,x,y};applyHudItem(el,hudLayout[key]);};
+        const move=ev=>{
+          if(ev.pointerId!==e.pointerId)return;
+          ev.preventDefault();
+          const w=el.getBoundingClientRect().width, h=el.getBoundingClientRect().height;
+          const minX=(w/2)/parent.width*100, maxX=100-minX;
+          const minY=(h/2)/parent.height*100, maxY=100-minY;
+          const x=Math.max(minX,Math.min(maxX,current.x+(ev.clientX-startX)/parent.width*100));
+          const y=Math.max(minY,Math.min(maxY,current.y+(ev.clientY-startY)/parent.height*100));
+          hudLayout[key]={...current,x,y};applyHudItem(el,hudLayout[key]);
+        };
         const end=ev=>{if(ev.pointerId!==e.pointerId)return;el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',end);el.removeEventListener('pointercancel',end);};
         el.addEventListener('pointermove',move);el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
       },true);
