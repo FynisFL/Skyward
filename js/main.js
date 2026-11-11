@@ -472,8 +472,9 @@
   });
   canvas.addEventListener('pointermove', (e) => {
     if (e.pointerId !== lookPointer || G.state !== 'playing') return;
+    e.preventDefault();
     const dx = e.clientX - lookX, dy = e.clientY - lookY; lookX = e.clientX; lookY = e.clientY;
-    player.look(dx, dy);
+    player.look(dx * 1.12, dy * 1.12);
   });
   const endLook = (e) => { if (e.pointerId === lookPointer) lookPointer = null; };
   canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
