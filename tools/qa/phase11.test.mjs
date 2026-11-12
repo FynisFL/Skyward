@@ -21,8 +21,8 @@ assert.equal(ai.getMovementIntent('brute', 4), 'hold-frontline');
 const speeder = ai.getProfile('speeder');
 assert.equal(ai.isInChargeWindow(5.4, speeder), false);
 assert.equal(ai.isInChargeWindow(5.5, speeder), true);
-assert.equal(ai.isInChargeWindow(15.5, speeder), true);
-assert.equal(ai.isInChargeWindow(15.6, speeder), false);
+assert.equal(ai.isInChargeWindow(13.4, speeder), true);
+assert.equal(ai.isInChargeWindow(13.5, speeder), false);
 
 // Brute ground slam resolves against the position locked at telegraph start.
 assert.equal(ai.isInsideRadialAttack(0, 0, 3, 0, 3.55), true);
