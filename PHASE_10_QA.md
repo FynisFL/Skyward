@@ -15,11 +15,13 @@ The project remains Three.js r128, classic scripts, local assets, no CDN, no bun
 | Touch joystick | normalized x/y axis updates and zero-axis release |
 | Touch look | coalesced relative look delta applied on the next frame |
 | Touch actions | semantic press/release for fire, aim, sprint, jump, reload, dash, grenade, strike and weapon cycle |
+| Roguelite upgrades | selected upgrade ID after an Endless / intermission choice |
+| Look configuration | recorded sensitivity and Y-axis inversion restored for playback |
 | Pause / resume | explicit state transition with source metadata |
 | Abandon run | explicit return-to-menu transition with mission/wave outcome |
 | Platform interruption | window blur, visibility hide, page hide, Android pause/back and pointer-lock loss recorded through pause transition |
 
-Replay v2 stores frame deltas and ordered inputs. Touch movement is normalized to -1..1 so it does not depend on the original screen's pixel dimensions.
+Replay v2 stores frame deltas and ordered inputs. Touch movement is normalized to -1..1 so it does not depend on the original screen's pixel dimensions. The recording metadata also stores look sensitivity and Y-axis inversion, so playback does not silently inherit different local control settings. Endless upgrade selections are recorded by stable upgrade ID.
 
 ## Deterministic checkpoints
 
@@ -95,6 +97,8 @@ Phase 10 tests cover:
 - [ ] Confirm no touch input from the physical device can interfere while a replay is playing.
 - [ ] Test long sessions and large tapes; export, reload and replay the saved JSON.
 - [ ] Import a representative v1 tape and verify compatibility.
+- [ ] Record and replay an Endless run through at least two upgrade selections; verify selected IDs, upgrade effects and post-upgrade checkpoints match.
+- [ ] Record with non-default look sensitivity and inverted Y, then replay after changing local settings; verify playback restores the recorded look configuration.
 
 ## Exit criteria
 
