@@ -16,7 +16,7 @@
 
 ## Automated verification
 
-Verified by GitHub Actions on runtime commit `42b65bd1` for quality validation, web deployment and Android APK build. The Pages build also passed on the immediately preceding web-identical source commit. Manual gameplay and cross-device replay remain separate checks.
+Verified by GitHub Actions on runtime commit `42b65bd1` for quality validation, web deployment and Android APK build. The latest documentation/main state `cb77aaed` also passed quality validation, web deployment and GitHub Pages deployment. Manual gameplay and cross-device replay remain separate checks.
 
 | Check | Status |
 |---|---|
@@ -34,9 +34,9 @@ Verified by GitHub Actions on runtime commit `42b65bd1` for quality validation, 
 
 ## CI evidence
 
-- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185869023)
-- [Web deployment — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185868984)
-- [GitHub Pages build/deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185868915)
+- [Latest quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43186348830)
+- [Latest web deployment — PASS](https://github.com/FynisFL/Skyward/actions/runs/43186348893)
+- [Latest GitHub Pages build/deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43186347546)
 - [Android QA + APK build + artifact upload — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185869123)
 
 The Android artifact is named `Skyward-Salvage-Android-APK` and was uploaded by the workflow. It includes Replay v2, touch/lifecycle input capture, Endless upgrade recording, control-setting metadata and gameplay checkpoints.
