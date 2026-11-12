@@ -922,20 +922,20 @@ const World = (() => {
       const k = reducedMotion ? 0.2 : 1;
       const reactorPulse = 0.5 + 0.5 * Math.sin(t * 2.35);
       blades.rotation.y += dt * 0.42 * k;
-      core.scale.setScalar(0.96 + reactorPulse * 0.1 * k);
-      core.material.emissiveIntensity = 1.15 + reactorPulse * 1.05;
+      core.scale.setScalar(1 + (reactorPulse - 0.5) * 0.1 * k);
+      core.material.emissiveIntensity = 1.65 + (reactorPulse - 0.5) * 2.1 * k;
       coreRingRig.rotation.y += dt * 0.68 * k;
-      coreRing.material.emissiveIntensity = 0.85 + reactorPulse * 0.95;
+      coreRing.material.emissiveIntensity = 1.32 + (reactorPulse - 0.5) * 1.9 * k;
       reactorOrbit.rotation.y -= dt * 0.46 * k;
-      orbitRing.material.emissiveIntensity = 0.55 + reactorPulse * 1.0;
+      orbitRing.material.emissiveIntensity = 0.95 + (reactorPulse - 0.5) * 1.0 * k;
       orbitNode.rotation.x += dt * 1.2 * k;
-      reactorBeam.scale.y = 0.9 + reactorPulse * 0.18 * k;
-      reactorBeam.material.opacity = 0.10 + reactorPulse * 0.16;
-      reactorLight.intensity = (q === 'low' ? 0.5 : 1.25) * (0.55 + reactorPulse * 0.7);
+      reactorBeam.scale.y = 1 + (reactorPulse - 0.5) * 0.24 * k;
+      reactorBeam.material.opacity = 0.18 + (reactorPulse - 0.5) * 0.18 * k;
+      reactorLight.intensity = (q === 'low' ? 0.5 : 1.25) * (0.9 + (reactorPulse - 0.5) * 0.6 * k);
 
-      portal.material.emissiveIntensity = 0.75 + (0.5 + 0.5 * Math.sin(t * 1.7)) * 0.95;
+      portal.material.emissiveIntensity = 1.2 + Math.sin(t * 1.7) * 0.35 * k;
       portal.rotation.z += dt * 0.28 * k;
-      portalLight.intensity = (q === 'low' ? 0.35 : 0.9) * (0.58 + 0.42 * Math.sin(t * 1.7 + 0.8));
+      portalLight.intensity = (q === 'low' ? 0.35 : 0.9) * (0.9 + Math.sin(t * 1.7 + 0.8) * 0.1 * k);
       hangarScanner.rotation.y = Math.sin(t * 0.34) * 0.82 * k;
 
       if (gantryTrolley) {
@@ -949,10 +949,10 @@ const World = (() => {
       for (let i = 0; i < world.relayMotion.length; i++) {
         const relay = world.relayMotion[i];
         const pulse = 0.5 + 0.5 * Math.sin(t * 2.1 + relay.phase);
-        relay.core.scale.setScalar(0.92 + pulse * 0.16 * k);
+        relay.core.scale.setScalar(1 + (pulse - 0.5) * 0.16 * k);
         relay.ringRig.rotation.y += dt * (i % 2 ? -0.32 : 0.32) * k;
         relay.thrusters.forEach((ring, j) => {
-          ring.material.emissiveIntensity = 0.42 + (0.5 + 0.5 * Math.sin(t * 2.7 + relay.phase + j)) * 1.1;
+          ring.material.emissiveIntensity = 0.9 + Math.sin(t * 2.7 + relay.phase + j) * 0.55 * k;
         });
       }
 
@@ -971,13 +971,13 @@ const World = (() => {
 
       for (let i = 0; i < world.blinkers.length; i++) {
         const b = world.blinkers[i];
-        const pulse = Math.pow(Math.max(0, Math.sin(t * 2.2 + i * 1.05)), 8);
+        const pulse = Math.pow(Math.max(0, Math.sin(t * 2.2 + i * 1.05)), 8) * k;
         b.userData.light.intensity = 0.15 + pulse * (q === 'low' ? 1.5 : 3.0);
         b.userData.bulb.material.emissiveIntensity = 0.28 + pulse * 2.7;
       }
 
       for (let i = 0; i < world.lamps.length; i++) {
-        world.lamps[i].emissiveIntensity = 1.15 + (0.5 + 0.5 * Math.sin(t * 2.4 + i * 1.4)) * 0.85;
+        world.lamps[i].emissiveIntensity = 1.55 + Math.sin(t * 2.4 + i * 1.4) * 0.35 * k;
       }
     };
 
