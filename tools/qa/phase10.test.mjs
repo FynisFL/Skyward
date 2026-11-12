@@ -38,7 +38,7 @@ replay.endFrame();
 replay.finish({ victory: true, score: 987 });
 const tape = replay.getTape();
 assert.equal(tape.version, 2);
-assert.equal(tape.inputs.length, 9;
+assert.equal(tape.inputs.length, 9);
 assert.equal(tape.frames.length, 2);
 assert.equal(tape.events.length, 2);
 assert.equal(tape.inputs[0].frame, 0);
