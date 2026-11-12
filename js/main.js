@@ -6,6 +6,12 @@
 (function () {
   const canvas = document.getElementById('game-canvas');
 
+  // Chỉ bật touch UI khi thiết bị nhập chính là cảm ứng; laptop touchscreen vẫn giữ chuột + bàn phím.
+  const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+  const touchCapable = mq('(pointer: coarse)') ||
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '') ||
+    (('ontouchstart' in window) && !mq('(any-pointer: fine)'));
+
   // ---------- kiểm tra môi trường ----------
   if (!window.THREE) {
     const l = document.getElementById('loading'); if (l) l.classList.add('hidden');
@@ -17,7 +23,7 @@
 
   let renderer = null;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !touchCapable, powerPreference: 'high-performance' });
   } catch (e) {
     const l = document.getElementById('loading'); if (l) l.classList.add('hidden');
     const f = document.getElementById('fatal'); if (f) f.classList.remove('hidden');
@@ -36,7 +42,7 @@
   }
   function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
-  const touchCapable = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
   const savedSettingsRaw = readJSON(SETTINGS_KEY);
   const savedSettings = savedSettingsRaw && typeof savedSettingsRaw === 'object' ? savedSettingsRaw : {};
   const settings = Object.assign({
@@ -60,6 +66,9 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualityScale));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputEncoding = THREE.sRGBEncoding;
+  // Tone mapping kiểu điện ảnh, giữ chi tiết vùng sáng của vật liệu PBR.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
   renderer.shadowMap.enabled = settings.quality === 'high';
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -75,6 +84,12 @@
 
   const __w0 = performance.now();
   const world = World.create(scene, settings.quality);
+  // Environment map từ bầu trời scene giúp vật liệu kim loại có nguồn phản chiếu.
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    window.SKYWARD_ENV = pmrem.fromScene(scene, 0.03, 1, 1500).texture;
+    pmrem.dispose();
+  } catch (e) { console.warn('[Skyward] Env map unavailable', e); }
   if (window.SkywardAssetFactory) world.scifiProps = window.SkywardAssetFactory.addWorldProps(scene);
   window.__WORLD_MS__ = +(performance.now() - __w0).toFixed(1);
   const particles = new ParticleSystem(scene, settings.quality === 'low' ? 500 : 900);
@@ -462,6 +477,14 @@
   window.addEventListener('skyward-native-back', () => {
     if (G.state === 'playing') pauseGame();
   });
+
+  // Khôi phục WebGL context trên Android; pause ngay khi GPU reset.
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    releaseAllInputs();
+    if (G.state === 'playing') pauseGame();
+  });
+  canvas.addEventListener('webglcontextrestored', () => { location.reload(); });
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
