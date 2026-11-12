@@ -88,10 +88,10 @@ class ParticleSystem {
     const spread = o.spread === undefined ? 1 : o.spread;
 
     for (let n = 0; n < count; n++) {
-      const c = (color2 && Math.random() < 0.5) ? color2 : color;
-      const th = Math.random() * Math.PI * 2;
-      const ph = Math.acos(2 * Math.random() - 1);
-      const s = speed * (0.35 + Math.random() * 0.65);
+      const c = (color2 && SkywardRNG.random('vfx') < 0.5) ? color2 : color;
+      const th = SkywardRNG.random('vfx') * Math.PI * 2;
+      const ph = Math.acos(2 * SkywardRNG.random('vfx') - 1);
+      const s = speed * (0.35 + SkywardRNG.random('vfx') * 0.65);
       const vx = Math.sin(ph) * Math.cos(th) * s * spread;
       const vy = Math.cos(ph) * s + up;
       const vz = Math.sin(ph) * Math.sin(th) * s * spread;
@@ -99,7 +99,7 @@ class ParticleSystem {
         p.x, p.y, p.z,
         vx, vy, vz,
         c[0], c[1], c[2],
-        life * (0.6 + Math.random() * 0.8),
+        life * (0.6 + SkywardRNG.random('vfx') * 0.8),
         gravity
       );
     }
