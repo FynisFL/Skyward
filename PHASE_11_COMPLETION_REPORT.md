@@ -12,6 +12,8 @@
 - Added combat event trace for telegraphs, attacks, stagger interrupts, Commander phase changes and weakpoint interactions.
 - Added attack state, locked targets/direction, stagger, phase and weakpoint timers to Replay v2 checkpoints.
 - Added Phase 11 deterministic tests, repository validator checks and quality/Android CI gates.
+- Disabled frustum culling for animated enemy glTF meshes to avoid rest-pose bounds hiding moving models.
+- Added a ray-sphere fallback for hitscan only when no actual enemy mesh is hit; this preserves real weakpoint mesh hits and respects world obstruction distance.
 - Synchronized combat AI, enemies, weapons, main runtime and HTML script loading to the Android WebView mirror.
 
 ## Automated verification
