@@ -316,7 +316,7 @@ class Enemy {
     return false;
   }
 
-  update(dt, player, bounds, others) {
+  update(dt, player, bounds, others, world) {
     if (!this.alive) return;
     this.t += dt;
     if (this.assetMixer) this.assetMixer.update(dt);
@@ -360,8 +360,33 @@ class Enemy {
     }
 
     if (move.lengthSq() > 0.001) {
-      move.normalize().multiplyScalar(this.moveSpeed * dt);
-      pos.add(move);
+      const desired = move.clone().normalize();
+      const travel = this.moveSpeed * dt;
+      const blockedAt = (x, z) => world && typeof world.isEnemyBlocked === 'function'
+        ? world.isEnemyBlocked(x, z, pos.y, this.radius)
+        : false;
+      const nextX = pos.x + desired.x * travel;
+      const nextZ = pos.z + desired.z * travel;
+      if (!blockedAt(nextX, nextZ)) {
+        pos.x = nextX;
+        pos.z = nextZ;
+      } else {
+        // Probe shallow steering offsets around the direct route; choose the
+        // clear candidate that makes the most progress toward the player.
+        const angles = [0.55, -0.55, 1.05, -1.05, 1.57, -1.57, 2.1, -2.1];
+        let best = null, bestScore = Infinity;
+        for (let i = 0; i < angles.length; i++) {
+          const a = angles[i], c = Math.cos(a), s = Math.sin(a);
+          const sx = desired.x * c - desired.z * s;
+          const sz = desired.x * s + desired.z * c;
+          const tx = pos.x + sx * travel, tz = pos.z + sz * travel;
+          if (blockedAt(tx, tz)) continue;
+          const score = Math.hypot(player.pos.x - tx, player.pos.z - tz) +
+            Math.abs(a) * 0.12;
+          if (score < bestScore) { bestScore = score; best = { x: tx, z: tz }; }
+        }
+        if (best) { pos.x = best.x; pos.z = best.z; }
+      }
     }
 
     // giới hạn sân
@@ -437,16 +462,19 @@ class Enemy {
     this.projectiles.push(p);
   }
 
-  updateProjectiles(dt, player, onPlayerHit) {
+  updateProjectiles(dt, player, onPlayerHit, world) {
     if (!this.projectiles) return;
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.life -= dt;
+      const previous = p.mesh.position.clone();
       p.mesh.position.addScaledVector(p.vel, dt);
       const pp = p.mesh.position;
       const target = new THREE.Vector3(player.pos.x, player.pos.y - 0.85, player.pos.z);
       const hit = pp.distanceTo(target) < 1.35;
-      let dead = p.life <= 0 || pp.y < 0.1;
+      const blocked = world && typeof world.isEnemyProjectileBlocked === 'function' &&
+        world.isEnemyProjectileBlocked(pp.x, pp.y, pp.z, 0.22);
+      let dead = p.life <= 0 || pp.y < 0.1 || blocked;
       if (hit && !player.dead) {
         onPlayerHit(p.damage, pp.clone());
         dead = true;
@@ -567,7 +595,7 @@ class WaveManager {
     this.state = 'intermission'; this.timer = 0.8;
   }
 
-  update(dt, player, bounds) {
+  update(dt, player, bounds, world) {
     if (this.state === 'upgrade' || this.state === 'idle' || this.state === 'done') return;
     if (this.spawnQueue.length > 0) {
       this.spawnTimer -= dt;
@@ -579,8 +607,8 @@ class WaveManager {
         if (e.updateDeath(dt)) { e.dispose(); this.enemies.splice(i, 1); i--; }
         continue;
       }
-      e.update(dt, player, bounds, this.enemies);
-      e.updateProjectiles(dt, player, this.onPlayerHit);
+      e.update(dt, player, bounds, this.enemies, world);
+      e.updateProjectiles(dt, player, this.onPlayerHit, world);
     }
 
     if (this.state === 'intermission') {

@@ -981,7 +981,7 @@
       if (!choosingUpgrade) {
         player.update(sdt, world.bounds, world);
         weapons.update(sdt, triggerDown);
-        waves.update(sdt, player, world.bounds);
+        waves.update(sdt, player, world.bounds, world);
         updatePickups(sdt);
       } else {
         player.keys.clear(); triggerDown = false;

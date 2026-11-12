@@ -273,6 +273,44 @@ const World = (() => {
       return true;
     }
 
+    function colliderOverlapsCircle(c, x, z, radius) {
+      const dx = x - c.x, dz = z - c.z;
+      if (c.shape === 'circle') {
+        const r = radius + c.radius;
+        return dx * dx + dz * dz < r * r;
+      }
+      const cos = Math.cos(c.yaw), sin = Math.sin(c.yaw);
+      const lx = cos * dx - sin * dz, lz = sin * dx + cos * dz;
+      const cx = Math.max(-c.halfX, Math.min(c.halfX, lx));
+      const cz = Math.max(-c.halfZ, Math.min(c.halfZ, lz));
+      const ox = lx - cx, oz = lz - cz;
+      return ox * ox + oz * oz < radius * radius;
+    }
+
+    // Flying enemies ignore walkable deck tops, but must route around solid props.
+    world.isEnemyBlocked = function (x, z, centerY, radius = 1) {
+      const bodyMinY = centerY - radius * 0.58;
+      const bodyMaxY = centerY + radius * 0.58;
+      for (let i = 0; i < this.playerColliders.length; i++) {
+        const c = this.playerColliders[i];
+        if (c.isPlatform || (c.object && !isObjectVisible(c.object))) continue;
+        if (bodyMaxY <= c.minY + 0.02 || bodyMinY >= c.maxY - 0.02) continue;
+        if (colliderOverlapsCircle(c, x, z, radius * 0.62)) return true;
+      }
+      return false;
+    };
+
+    // Enemy projectiles stop at solid map geometry, including raised deck edges.
+    world.isEnemyProjectileBlocked = function (x, y, z, radius = 0.22) {
+      for (let i = 0; i < this.playerColliders.length; i++) {
+        const c = this.playerColliders[i];
+        if (c.object && !isObjectVisible(c.object)) continue;
+        if (y + radius <= c.minY + 0.01 || y - radius >= c.maxY - 0.01) continue;
+        if (colliderOverlapsCircle(c, x, z, radius)) return true;
+      }
+      return false;
+    };
+
     world.isPlayerBlocked = function (x, z, feetY, bodyHeight = 1.62, radius = 0.36, stepUp = 0, ignoredPlatform = null) {
       const bodyMinY = feetY + 0.04;
       const bodyMaxY = feetY + bodyHeight;
