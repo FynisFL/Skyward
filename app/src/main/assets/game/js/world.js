@@ -283,13 +283,13 @@ const World = (() => {
 
     scene.add(makeSkyDome());
     scene.add(makeHaze());
-    scene.fog = new THREE.Fog(0xb9d2e2, 70, 420);
+    scene.fog = new THREE.Fog(0x829db0, 66, 390);
 
     // ---------- ánh sáng ----------
-    const hemi = new THREE.HemisphereLight(0xd6e9ff, 0x3f4a3a, 0.75);
+    const hemi = new THREE.HemisphereLight(0xb6d9ec, 0x1a2935, 0.82);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xfff0d4, 1.35);
+    const sun = new THREE.DirectionalLight(0xd7eaff, 1.22);
     sun.position.set(70, 110, 45);
     if (shadowOn) {
       sun.castShadow = true;
@@ -309,132 +309,224 @@ const World = (() => {
     rim.position.set(-60, 35, -70);
     scene.add(rim);
 
-    const fill = new THREE.DirectionalLight(0xffe0b8, 0.18);
+    const fill = new THREE.DirectionalLight(0x8de9ff, 0.22);
     fill.position.set(-30, 20, 60);
     scene.add(fill);
 
-    // ---------- nền đảo ----------
-    const groundMat = Tex.mat('concrete', { rx: 14, ry: 14, roughness: 0.95, metalness: 0.03, bumpScale: 0.02 });
+    // ---------- AEGIS-09: orbital salvage facility ----------
+    // The playable island is now an abandoned industrial installation, not a
+    // flat arena. Raised decks are walkable surfaces and every step is physical.
+    const deckMat = Tex.mat('floorplate', { rx: 22, ry: 22, roughness: 0.78, metalness: 0.62, bumpScale: 0.018 });
+    const hullMat = Tex.mat('gunmetal', { rx: 5, ry: 3, roughness: 0.58, metalness: 0.82, bumpScale: 0.012 });
+    const armorMat = Tex.mat('metal', { rx: 4, ry: 3, roughness: 0.66, metalness: 0.72, bumpScale: 0.014 });
+    const containerMat = Tex.mat('container', { rx: 4, ry: 2, roughness: 0.68, metalness: 0.58, bumpScale: 0.018 });
+    const rustMat = Tex.mat('rust', { rx: 3, ry: 2, roughness: 0.78, metalness: 0.48 });
+    const hazardMat = Tex.mat('hazard', { rx: 2, ry: 1, roughness: 0.72, metalness: 0.35 });
+    const cyanMat = new THREE.MeshStandardMaterial({
+      color: 0x43c9e7, emissive: 0x087f9e, emissiveIntensity: 1.25,
+      roughness: 0.28, metalness: 0.35
+    });
+    const cyanSoftMat = new THREE.MeshStandardMaterial({
+      color: 0x174b60, emissive: 0x087c9b, emissiveIntensity: 0.75,
+      roughness: 0.42, metalness: 0.55
+    });
+    const amberMat = new THREE.MeshStandardMaterial({
+      color: 0xffa54b, emissive: 0xb94b12, emissiveIntensity: 0.85,
+      roughness: 0.38, metalness: 0.28
+    });
+    const darkGlassMat = new THREE.MeshStandardMaterial({
+      color: 0x102533, emissive: 0x06374a, emissiveIntensity: 0.42,
+      roughness: 0.2, metalness: 0.68
+    });
+
+    const groundMat = Tex.mat('floorplate', { rx: 30, ry: 30, roughness: 0.9, metalness: 0.48, bumpScale: 0.02 });
     const ground = new THREE.Mesh(new THREE.CylinderGeometry(62, 46, 7, 72), groundMat);
     ground.position.y = -3.5;
     ground.receiveShadow = shadowOn;
+    ground.userData.surface = 'metal';
     scene.add(ground);
-    
-    // Raised walkable pads from the Phase 1 arena layout.
-    const phase1Platforms = [
-      { x: 0, y: 0, z: 0, w: 16, d: 16, h: 0.7, color: 0x6d7782 },
-      { x: 0, y: 0, z: -18, w: 15, d: 12, h: 0.8, color: 0x5a6672 },
-      { x: -19, y: 0, z: 16, w: 12, d: 12, h: 0.9, color: 0x5b6875 },
-      { x: 22, y: 0, z: 18, w: 10, d: 10, h: 0.82, color: 0x5b6671 },
-      { x: -28, y: 2.1, z: -8, w: 8, d: 10, h: 0.8, color: 0x586f76 },
-      { x: 28, y: 2.3, z: -10, w: 8, d: 10, h: 0.8, color: 0x536b75 },
-      { x: 0, y: 4.4, z: 20, w: 12, d: 9, h: 0.8, color: 0x4d737d },
-      { x: -14, y: 1.4, z: -30, w: 10, d: 8, h: 0.74, color: 0x677d61 },
-      { x: 15, y: 1.2, z: -28, w: 10, d: 8, h: 0.74, color: 0x677d61 },
-      { x: -42, y: 0.8, z: -18, w: 9, d: 8, h: 0.66, color: 0x647c67 },
-      { x: 42, y: 0.8, z: 18, w: 9, d: 8, h: 0.66, color: 0x647c67 },
-      { x: 0, y: 0.2, z: 32, w: 18, d: 4.8, h: 0.58, color: 0x72867f }
-    ];
-    phase1Platforms.forEach(p => {
+
+    // A continuous service deck covers the old bare concrete arena floor.
+    const floorDisc = new THREE.Mesh(new THREE.CircleGeometry(61, 96), deckMat);
+    floorDisc.rotation.x = -Math.PI / 2;
+    floorDisc.position.y = 0.014;
+    floorDisc.receiveShadow = true;
+    floorDisc.userData.surface = 'metal';
+    scene.add(floorDisc);
+
+    const floorTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x213744, emissive: 0x063e55, emissiveIntensity: 0.55,
+      roughness: 0.5, metalness: 0.7
+    });
+    [14, 34, 49].forEach((r, i) => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r, i === 2 ? 0.12 : 0.075, 6, 96), floorTrimMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.045 + i * 0.002;
+      scene.add(ring);
+    });
+    for (let i = -5; i <= 5; i++) {
+      const x = i * 8;
+      const seamX = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.025, 94), floorTrimMat);
+      seamX.position.set(x, 0.035, 0);
+      scene.add(seamX);
+      const seamZ = new THREE.Mesh(new THREE.BoxGeometry(94, 0.025, 0.045), floorTrimMat);
+      seamZ.position.set(0, 0.035, x);
+      scene.add(seamZ);
+    }
+
+    const structures = new THREE.Group();
+    structures.name = 'Aegis09_Industrial_Structures';
+    scene.add(structures);
+
+    function addMapBox(parent, w, h, d, material, x, y, z, ry = 0, solid = true, blocksBullets = true) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+      mesh.position.set(x, y, z);
+      mesh.rotation.y = ry;
+      mesh.castShadow = shadowOn;
+      mesh.receiveShadow = true;
+      if (solid) mesh.userData.playerSolid = true;
+      if (blocksBullets) mesh.userData.blocksBullets = true;
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addMapCylinder(parent, radiusTop, radiusBottom, height, material, x, y, z, solid = true) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radiusTop, radiusBottom, height, 16), material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = shadowOn;
+      mesh.receiveShadow = true;
+      if (solid) {
+        mesh.userData.playerSolid = true;
+        mesh.userData.blocksBullets = true;
+      }
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function addDeck(def) {
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(p.w, p.h, p.d),
-        new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.82, metalness: 0.18 })
+        new THREE.BoxGeometry(def.w, def.h, def.d),
+        def.material || deckMat
       );
-      mesh.position.set(p.x, p.y + p.h * 0.5, p.z);
+      mesh.position.set(def.x, def.baseY + def.h * 0.5, def.z);
       mesh.castShadow = shadowOn;
       mesh.receiveShadow = true;
       mesh.userData.platform = true;
+      mesh.userData.playerSolid = true;
       mesh.userData.blocksBullets = true;
       scene.add(mesh);
       world.platforms.push({
-        x: p.x, z: p.z, w: p.w, d: p.d,
-        topY: p.y + p.h, baseY: p.y, height: p.h, collider: mesh
+        x: def.x, z: def.z, w: def.w, d: def.d,
+        topY: def.baseY + def.h, baseY: def.baseY, height: def.h, collider: mesh
       });
+      return mesh;
+    }
+
+    function addStepRun(def) {
+      // Each riser is <= maxStepUp, so the player can climb the service stairs
+      // without jumping. Step surfaces also participate in landing queries.
+      for (let i = 1; i <= def.count; i++) {
+        const rise = def.rise;
+        const along = (i - 0.5) * def.depth;
+        const x = def.x + (def.axis === 'x' ? def.direction * along : 0);
+        const z = def.z + (def.axis === 'z' ? def.direction * along : 0);
+        const w = def.axis === 'x' ? def.depth : def.width;
+        const d = def.axis === 'z' ? def.depth : def.width;
+        const baseY = (i - 1) * rise;
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(w, rise, d),
+          def.material || hullMat
+        );
+        mesh.position.set(x, baseY + rise * 0.5, z);
+        mesh.castShadow = shadowOn;
+        mesh.receiveShadow = true;
+        mesh.userData.platform = true;
+        mesh.userData.playerSolid = true;
+        mesh.userData.blocksBullets = true;
+        scene.add(mesh);
+        world.platforms.push({
+          x, z, w, d, topY: baseY + rise, baseY, height: rise, collider: mesh
+        });
+      }
+    }
+
+    // Main sectors: landing dock, command deck, maintenance deck and cargo deck.
+    addDeck({ x: 0, z: 30, w: 24, d: 14, h: 0.36, baseY: 0 });
+    addDeck({ x: 0, z: -27, w: 20, d: 12, h: 1.2, baseY: 0 });
+    addDeck({ x: -27, z: -4, w: 14, d: 18, h: 0.9, baseY: 0 });
+    addDeck({ x: 27, z: -4, w: 14, d: 18, h: 0.9, baseY: 0 });
+    addDeck({ x: -40, z: 25, w: 9, d: 12, h: 0.6, baseY: 0 });
+    addDeck({ x: 40, z: 25, w: 9, d: 12, h: 0.6, baseY: 0 });
+    addDeck({ x: 0, z: -7, w: 12, d: 8, h: 0.3, baseY: 0 });
+
+    // Purpose-built, traversable approaches to the raised sectors.
+    addStepRun({ x: 0, z: -13.7, axis: 'z', direction: -1, count: 4, rise: 0.3, depth: 1.8, width: 5.5 });
+    addStepRun({ x: -14.6, z: -4, axis: 'x', direction: -1, count: 3, rise: 0.3, depth: 1.8, width: 7 });
+    addStepRun({ x: 14.6, z: -4, axis: 'x', direction: 1, count: 3, rise: 0.3, depth: 1.8, width: 7 });
+    addStepRun({ x: -31.9, z: 25, axis: 'x', direction: -1, count: 2, rise: 0.3, depth: 1.8, width: 7 });
+    addStepRun({ x: 31.9, z: 25, axis: 'x', direction: 1, count: 2, rise: 0.3, depth: 1.8, width: 7 });
+
+    // Metallic edge bands make each deck read as installed infrastructure.
+    const deckEdgeMat = new THREE.MeshStandardMaterial({ color: 0x182733, roughness: 0.52, metalness: 0.82 });
+    const deckGlowMat = new THREE.MeshStandardMaterial({ color: 0x1c6d83, emissive: 0x087d9b, emissiveIntensity: 0.9, metalness: 0.55 });
+    [
+      { x: 0, z: 30, w: 24, d: 14, y: 0.38 },
+      { x: 0, z: -27, w: 20, d: 12, y: 1.22 },
+      { x: -27, z: -4, w: 14, d: 18, y: 0.92 },
+      { x: 27, z: -4, w: 14, d: 18, y: 0.92 }
+    ].forEach(d => {
+      addMapBox(structures, d.w, 0.08, 0.14, deckEdgeMat, d.x, d.y, d.z - d.d * 0.5 + 0.12, 0, false, false);
+      addMapBox(structures, d.w, 0.08, 0.14, deckEdgeMat, d.x, d.y, d.z + d.d * 0.5 - 0.12, 0, false, false);
+      addMapBox(structures, 0.14, 0.08, d.d, deckGlowMat, d.x - d.w * 0.5 + 0.12, d.y, d.z, 0, false, false);
+      addMapBox(structures, 0.14, 0.08, d.d, deckGlowMat, d.x + d.w * 0.5 - 0.12, d.y, d.z, 0, false, false);
     });
 
-
-    const rockMat = Tex.mat('stone', { rx: 10, ry: 3, roughness: 1, metalness: 0, bumpScale: 0.05 });
-    const underside = new THREE.Mesh(new THREE.CylinderGeometry(46, 9, 30, 56), rockMat);
+    const underMat = Tex.mat('stone', { rx: 8, ry: 3, roughness: 0.96, metalness: 0.12, bumpScale: 0.04 });
+    const underside = new THREE.Mesh(new THREE.CylinderGeometry(46, 9, 30, 56), underMat);
     underside.position.y = -21;
     scene.add(underside);
-
     const rimMat = Tex.mat('gunmetal', { rx: 40, ry: 1, roughness: 0.45, metalness: 0.85, bumpScale: 0.008 });
     const edgeRing = new THREE.Mesh(new THREE.TorusGeometry(61.2, 1.0, 10, 96), rimMat);
     edgeRing.rotation.x = Math.PI / 2;
     edgeRing.position.y = 0.08;
     scene.add(edgeRing);
 
-    // ---------- turbine trung tâm ----------
+    // ---------- central containment reactor ----------
     const turbine = new THREE.Group();
-    const mastMat = Tex.mat('gunmetal', { rx: 3, ry: 6, roughness: 0.42, metalness: 0.88, bumpScale: 0.01 });
-    const bladeMat = Tex.mat('military', { rx: 2, ry: 4, roughness: 0.62, metalness: 0.35, bumpScale: 0.012 });
-    const baseMat = Tex.mat('concrete', { rx: 4, ry: 2, roughness: 0.92, metalness: 0.05 });
-    const darkMat = Tex.mat('gunmetal', { rx: 2, ry: 2, roughness: 0.5, metalness: 0.8 });
-
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 9.5, 3.2, 28), baseMat);
-    base.position.y = 1.6;
-    base.userData.playerSolid = true;
-    turbine.add(base);
-
-    for (let i = 0; i < 5; i++) {
-      const st = new THREE.Mesh(new THREE.CylinderGeometry(3.4 - i * 0.32, 3.7 - i * 0.32, 0.34, 20), darkMat);
-      st.position.y = 0.2 + i * 0.62;
-      turbine.add(st);
-    }
-
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.4, 20, 22), mastMat);
-    mast.position.y = 13;
-    mast.userData.playerSolid = true;
-    turbine.add(mast);
-
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const strut = new THREE.Mesh(new THREE.BoxGeometry(0.5, 13, 0.5), darkMat);
-      strut.position.set(Math.cos(a) * 6.2, 7, Math.sin(a) * 6.2);
-      strut.rotation.z = Math.cos(a) * 0.34;
-      strut.rotation.x = -Math.sin(a) * 0.34;
-      strut.userData.playerSolid = true;
-      turbine.add(strut);
-    }
-
-    const hub = new THREE.Mesh(new THREE.SphereGeometry(2.5, 22, 18), mastMat);
-    hub.position.y = 23;
-    turbine.add(hub);
-
+    turbine.name = 'Aegis09_Containment_Reactor';
+    const reactorBase = addMapCylinder(turbine, 5.8, 6.6, 1.6, hullMat, 0, 0.8, 0, true);
+    const reactorRing = new THREE.Mesh(new THREE.TorusGeometry(5.6, 0.18, 8, 48), cyanSoftMat);
+    reactorRing.rotation.x = Math.PI / 2;
+    reactorRing.position.y = 1.58;
+    turbine.add(reactorRing);
+    const reactorShaft = addMapCylinder(turbine, 1.8, 2.1, 5.8, armorMat, 0, 4.5, 0, true);
+    const reactorCap = addMapCylinder(turbine, 2.7, 2.5, 0.7, hullMat, 0, 7.75, 0, true);
     const coreMat = new THREE.MeshStandardMaterial({
-      color: 0xff8a3d, emissive: 0xff6a1c, emissiveIntensity: 1.5, roughness: 0.3, metalness: 0.2
+      color: 0x69e8ff, emissive: 0x03bce7, emissiveIntensity: 1.6,
+      roughness: 0.22, metalness: 0.25
     });
-    const core = new THREE.Mesh(new THREE.SphereGeometry(1.55, 20, 16), coreMat);
-    core.position.y = 23;
+    const core = new THREE.Mesh(new THREE.SphereGeometry(1.45, 20, 16), coreMat);
+    core.position.y = 8.8;
     turbine.add(core);
-
     const coreRing = new THREE.Mesh(
-      new THREE.TorusGeometry(2.2, 0.16, 8, 32),
-      new THREE.MeshStandardMaterial({ color: 0xffa64d, emissive: 0xff7a2f, emissiveIntensity: 1.6 })
+      new THREE.TorusGeometry(2.4, 0.16, 8, 40),
+      new THREE.MeshStandardMaterial({ color: 0x67dff7, emissive: 0x00a9d6, emissiveIntensity: 1.25, roughness: 0.28, metalness: 0.35 })
     );
-    coreRing.position.y = 23;
+    coreRing.rotation.x = Math.PI / 2;
+    coreRing.position.y = 8.8;
     turbine.add(coreRing);
-
     const blades = new THREE.Group();
     for (let i = 0; i < 4; i++) {
-      const pivot = new THREE.Group();
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.72, 15.5, 0.22), bladeMat);
-      blade.position.y = 8.6;
-      pivot.add(blade);
-      const tip = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.4, 0.3), coreMat);
-      tip.position.y = 16.2;
-      pivot.add(tip);
-      pivot.rotation.z = (i / 4) * Math.PI * 2;
-      blades.add(pivot);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.18, 0.34), i % 2 ? cyanSoftMat : hullMat);
+      arm.position.set(0, 2.25, 0);
+      arm.rotation.y = i * Math.PI / 2;
+      blades.add(arm);
     }
-    blades.position.y = 23;
     turbine.add(blades);
-
-    const beacon = makeBlinkingLight(0xff3b2f);
-    beacon.position.y = 26.4;
+    const beacon = makeBlinkingLight(0x35dfff);
+    beacon.position.y = 10.2;
     turbine.add(beacon);
     world.blinkers.push(beacon);
-
     turbine.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = shadowOn; } });
     scene.add(turbine);
     world.turbine = turbine;
@@ -442,95 +534,182 @@ const World = (() => {
     world.core = core;
     world.coreRing = coreRing;
 
-    // ---------- cổng đá ----------
-    const archMat = Tex.mat('stone', { rx: 3, ry: 3, roughness: 0.95, metalness: 0.04, bumpScale: 0.03 });
+    // ---------- north command hangar ----------
     const arch = new THREE.Group();
-    const pillarGeo = new THREE.BoxGeometry(2.6, 18, 2.6);
-    const p1 = new THREE.Mesh(pillarGeo, archMat); p1.position.set(-7.2, 9, 0); p1.userData.playerSolid = true;
-    const p2 = new THREE.Mesh(pillarGeo, archMat); p2.position.set(7.2, 9, 0); p2.userData.playerSolid = true;
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 2.8, 3.2), archMat); beam.position.y = 19.4; beam.userData.playerSolid = true;
-    arch.add(p1, p2, beam);
+    arch.name = 'Aegis09_Command_Hangar';
+    const hangarFrameMat = Tex.mat('gunmetal', { rx: 4, ry: 2, roughness: 0.5, metalness: 0.84 });
+    const hangarWallMat = Tex.mat('container', { rx: 5, ry: 2, roughness: 0.62, metalness: 0.7 });
+    const sideA = new THREE.Mesh(new THREE.BoxGeometry(1.4, 7.2, 1.6), hangarFrameMat);
+    sideA.position.set(-8.4, 4.8, 0);
+    sideA.userData.playerSolid = true; sideA.userData.blocksBullets = true;
+    const sideB = sideA.clone(); sideB.position.x = 8.4;
+    const rearWall = new THREE.Mesh(new THREE.BoxGeometry(16.8, 5.8, 0.8), hangarWallMat);
+    rearWall.position.set(0, 4.1, -5.2);
+    rearWall.userData.playerSolid = true; rearWall.userData.blocksBullets = true;
+    const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(5.2, 5.8, 0.8), hangarWallMat);
+    frontLeft.position.set(-5.8, 4.1, 5.2);
+    frontLeft.userData.playerSolid = true; frontLeft.userData.blocksBullets = true;
+    const frontRight = frontLeft.clone(); frontRight.position.x = 5.8;
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(18.2, 1.2, 1.6), hangarFrameMat);
+    lintel.position.set(0, 8.1, 5.1);
+    lintel.userData.playerSolid = true; lintel.userData.blocksBullets = true;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(18.2, 0.55, 11.6), hangarFrameMat);
+    roof.position.set(0, 7.2, 0);
+    roof.userData.playerSolid = true; roof.userData.blocksBullets = true;
+    arch.add(sideA, sideB, rearWall, frontLeft, frontRight, lintel, roof);
+
+    const windowA = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.18, 0.06), cyanMat);
+    windowA.position.set(-5.1, 5.4, 5.64);
+    const windowB = windowA.clone(); windowB.position.x = 5.1;
+    const hangarStripe = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.12, 0.08), amberMat);
+    hangarStripe.position.set(0, 1.45, 5.65);
+    arch.add(windowA, windowB, hangarStripe);
+
     const portalMat = new THREE.MeshStandardMaterial({
-      color: 0x8fd0ff, emissive: 0x3f9fdf, emissiveIntensity: 1.2, transparent: true, opacity: 0.72,
-      side: THREE.DoubleSide
+      color: 0x65e4ff, emissive: 0x06b9e8, emissiveIntensity: 1.2,
+      transparent: true, opacity: 0.72, side: THREE.DoubleSide
     });
-    const portal = new THREE.Mesh(new THREE.TorusGeometry(5.4, 0.34, 10, 48), portalMat);
-    portal.position.y = 10;
+    const portal = new THREE.Mesh(new THREE.TorusGeometry(3.25, 0.22, 10, 48), portalMat);
+    portal.position.set(0, 4.0, 5.55);
     arch.add(portal);
-    const plinth = new THREE.Mesh(new THREE.BoxGeometry(19, 1.2, 5), baseMat);
-    plinth.position.y = 0.6;
-    plinth.userData.playerSolid = true;
-    plinth.userData.platform = true;
-    plinth.userData.blocksBullets = true;
-    arch.add(plinth);
-    world.platforms.push({ x: 0, z: -34, w: 19, d: 5, topY: 1.2, baseY: 0, height: 1.2, collider: plinth });
-    arch.position.set(0, 0, -34);
+    arch.position.set(0, 0, -27);
     arch.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = shadowOn; } });
     scene.add(arch);
     world.portal = portal;
 
-    // Alternate map dressing for the Blackout mission: Stormglass Outpost.
-    const outpost = new THREE.Group();
-    const outpostMetal = new THREE.MeshStandardMaterial({ color: 0x26343e, roughness: 0.62, metalness: 0.78 });
-    const outpostAccent = new THREE.MeshStandardMaterial({ color: 0xc24c42, emissive: 0x5c1518, emissiveIntensity: 0.8, metalness: 0.35 });
-    const barricadeGeo = new THREE.BoxGeometry(6.2, 1.25, 0.72);
-    [[-24,-14,0.18],[24,-14,-0.18],[-24,15,-0.18],[24,15,0.18],[0,27,Math.PI/2],[0,-27,Math.PI/2]].forEach((p, i) => {
-      const base = new THREE.Mesh(barricadeGeo, outpostMetal); base.position.set(p[0], 0.72, p[1]); base.rotation.y = p[2]; base.userData.blocksBullets = true; base.userData.playerSolid = true; outpost.add(base);
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.16, 0.78), outpostAccent); stripe.position.set(p[0], 1.28, p[1]); stripe.rotation.y = p[2]; stripe.userData.blocksBullets = true; stripe.userData.playerSolid = true; outpost.add(stripe);
-    });
-    [[-33,-24],[33,-24],[-33,24],[33,24]].forEach((p, i) => {
-      const tower = new THREE.Group();
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.38,7.5,8), outpostMetal); mast.position.y = 3.75; mast.userData.blocksBullets = true; mast.userData.playerSolid = true; tower.add(mast);
-      const beaconMat = new THREE.MeshStandardMaterial({ color: 0xff5d67, emissive: 0xff263b, emissiveIntensity: 1.3 });
-      const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.42,10,8), beaconMat); beacon.position.y = 7.7; tower.add(beacon);
-      const beaconLight = new THREE.PointLight(0xff5d67, 0, 18); beaconLight.position.y = 7.75; tower.add(beaconLight);
-      tower.position.set(p[0],0,p[1]); outpost.add(tower); world.blinkers.push({ userData: { light: beaconLight, bulb: beacon } });
-    });
-    outpost.visible = false; scene.add(outpost); world.outpost = outpost;
-    world.setMap = function (name) {
-      const isOutpost = name === 'blackout';
-      outpost.visible = isOutpost;
-      world.mapName = isOutpost ? 'STORMGLASS OUTPOST' : 'CIRRUS REACH';
-    };
+    // ---------- maintenance bay: west ----------
+    const props = new THREE.Group();
+    props.name = 'Aegis09_Maintenance_And_Cargo';
+    scene.add(props);
+    const addBox = (w, h, d, mat, x, y, z, ry = 0) =>
+      addMapBox(props, w, h, d, mat, x, y, z, ry, true, true);
+    const addCylinder = (rt, rb, h, mat, x, y, z) =>
+      addMapCylinder(props, rt, rb, h, mat, x, y, z, true);
 
-    // ---------- đảo bay ----------
+    // Pressure tanks, service couplings and exposed conduit runs.
+    addCylinder(1.35, 1.5, 4.6, hullMat, -31.2, 3.2, -4.2);
+    addCylinder(1.15, 1.3, 4.0, armorMat, -23.4, 2.9, -5.8);
+    addBox(6.4, 1.1, 2.4, hullMat, -27.1, 1.55, 1.0, 0.08);
+    addBox(0.32, 0.32, 9.5, cyanSoftMat, -33.4, 1.55, -4.5, 0, false, false);
+    addBox(0.32, 0.32, 8.4, cyanSoftMat, -21.0, 1.55, -4.3, 0, false, false);
+    [-1, 1].forEach(side => {
+      addCylinder(0.16, 0.16, 4.8, amberMat, -27.2 + side * 4.2, 3.0, -10.5);
+    });
+
+    // ---------- cargo depot: east ----------
+    // Container stacks are placed on the elevated cargo deck, with open lanes
+    // left between them for ground movement and firing lines.
+    addBox(6.8, 3.0, 2.8, containerMat, 23.9, 2.4, -8.4, -0.08);
+    addBox(6.8, 3.0, 2.8, containerMat, 31.0, 2.4, -8.1, 0.06);
+    addBox(6.8, 3.0, 2.8, rustMat, 27.5, 5.4, -8.25, -0.02);
+    addBox(1.0, 1.0, 1.0, amberMat, 23.9, 4.45, -8.4, 0, false, false);
+    addBox(1.0, 1.0, 1.0, amberMat, 31.0, 4.45, -8.1, 0, false, false);
+
+    // Overhead loading gantry on the cargo deck.
+    [-1, 1].forEach(side => {
+      addBox(0.55, 6.4, 0.55, hullMat, 21.7 + (side > 0 ? 11 : 0), 4.1, -1.6);
+    });
+    addBox(12.0, 0.48, 0.6, hullMat, 27.2, 7.15, -1.6);
+    addBox(0.5, 0.5, 0.5, cyanMat, 27.2, 6.82, -1.6, 0, false, false);
+
+    // Scattered cover is deliberate and leaves broad lanes through the centre.
+    addBox(5.8, 1.25, 0.7, hullMat, -12.5, 0.625, 12.5, 0.28);
+    addBox(5.8, 1.25, 0.7, hullMat, 12.5, 0.625, 12.5, -0.28);
+    addBox(5.8, 1.25, 0.7, hullMat, -12.5, 0.625, -12.5, -0.28);
+    addBox(5.8, 1.25, 0.7, hullMat, 12.5, 0.625, -12.5, 0.28);
+
+    // Low barricades at the service approaches: cover, not arena walls.
+    [
+      [-8, 23, 0.14], [8, 23, -0.14],
+      [-37, 4, 0.22], [37, 4, -0.22],
+      [-18, -24, 0.12], [18, -24, -0.12]
+    ].forEach((p, i) => {
+      addBox(4.8, 1.1, 0.62, i % 2 ? armorMat : hazardMat, p[0], 0.55, p[1], p[2]);
+      addBox(4.5, 0.12, 0.68, amberMat, p[0], 1.08, p[1], p[2], false, false);
+    });
+
+    // Landing dock with a raised circular deployment pad.
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(8.0, 8.0, 0.18, 48), hullMat);
+    pad.position.set(0, 0.45, 31);
+    pad.castShadow = shadowOn;
+    pad.receiveShadow = true;
+    pad.userData.playerSolid = true;
+    pad.userData.platform = true;
+    pad.userData.blocksBullets = true;
+    props.add(pad);
+    world.platforms.push({ x: 0, z: 31, radius: 8, topY: 0.54, baseY: 0.36, height: 0.18, collider: pad });
+    const padRing = new THREE.Mesh(new THREE.TorusGeometry(7.45, 0.22, 8, 48), cyanMat);
+    padRing.rotation.x = Math.PI / 2;
+    padRing.position.set(0, 0.56, 31);
+    props.add(padRing);
+    const padInnerRing = new THREE.Mesh(new THREE.TorusGeometry(5.8, 0.07, 6, 48), amberMat);
+    padInnerRing.rotation.x = Math.PI / 2;
+    padInnerRing.position.set(0, 0.565, 31);
+    props.add(padInnerRing);
+    [-1, 1].forEach(side => {
+      addMapBox(props, 0.18, 0.06, 4.0, cyanMat, side * 9.3, 0.42, 31, 0, false, false);
+    });
+
+    // Supply cases and fuel drums are kept near the sector edges.
+    [
+      [-8.5, 0.75, 25.5, 0.18], [8.5, 0.75, 25.5, -0.18],
+      [-35.0, 0.75, -6.5, 0.2], [-36.8, 0.75, -5.1, -0.12],
+      [35.0, 0.75, 7.0, -0.35], [36.5, 0.75, 8.0, 0.18]
+    ].forEach(c => addBox(1.5, 1.5, 1.5, Tex.mat('crate', { rx: 1, ry: 1, roughness: 0.88, metalness: 0.1 }), c[0], c[1], c[2], c[3]));
+    [
+      [-6.5, 0.95, 27.5], [6.5, 0.95, 27.5],
+      [-35.5, 0.95, -9.5], [35.5, 0.95, 10.5]
+    ].forEach((p, i) => addCylinder(0.58, 0.58, 1.9, i % 2 ? armorMat : rustMat, p[0], p[1], p[2]));
+
+    // Perimeter signal pylons and navigation lights.
+    const pylons = [[-44, -22], [44, -22], [-44, 22], [44, 22]];
+    pylons.forEach((p, i) => {
+      const pylon = new THREE.Group();
+      addMapCylinder(pylon, 0.34, 0.52, 6.2, hullMat, 0, 3.1, 0, true);
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.11, 6, 16), i % 2 ? amberMat : cyanMat);
+      collar.rotation.x = Math.PI / 2;
+      collar.position.y = 5.4;
+      pylon.add(collar);
+      const lamp = makeBlinkingLight(i % 2 ? 0xff9b42 : 0x35dfff);
+      lamp.position.y = 6.4;
+      pylon.add(lamp);
+      pylon.position.set(p[0], 0, p[1]);
+      pylon.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = true; } });
+      structures.add(pylon);
+      world.blinkers.push(lamp);
+    });
+
+    // ---------- floating relay platforms ----------
+    // Distant islands are now abandoned industrial relays instead of green huts.
     const islandGroup = new THREE.Group();
+    islandGroup.name = 'Aegis09_Floating_Relay_Structures';
     const islandDefs = [
-      { x: -34, y: 8, z: -22, s: 1.3 },
-      { x: 38, y: 12, z: -30, s: 1.7 },
-      { x: -46, y: 16, z: 12, s: 1.1 },
-      { x: 44, y: 7, z: 20, s: 1.4 },
-      { x: 6, y: 20, z: -52, s: 1.9 },
-      { x: -18, y: 24, z: 40, s: 1.2 }
+      { x: -34, y: 8, z: -22, s: 1.25 },
+      { x: 38, y: 12, z: -30, s: 1.55 },
+      { x: -46, y: 16, z: 12, s: 1.05 },
+      { x: 44, y: 7, z: 20, s: 1.3 },
+      { x: 6, y: 20, z: -52, s: 1.7 },
+      { x: -18, y: 24, z: 40, s: 1.1 }
     ];
-    const grassMat = Tex.mat('grass', { rx: 3, ry: 1, roughness: 1, metalness: 0, bumpScale: 0.02 });
-    const iRockMat = Tex.mat('stone', { rx: 3, ry: 2, roughness: 1, metalness: 0, bumpScale: 0.04 });
-    const trunkMat = Tex.mat('wood', { rx: 1, ry: 2, roughness: 0.95, metalness: 0 });
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x4d6b3f, roughness: 1, metalness: 0 });
-    const hutMat = Tex.mat('military', { rx: 2, ry: 2, roughness: 0.8, metalness: 0.1 });
-
+    const islandRockMat = new THREE.MeshStandardMaterial({ color: 0x263541, roughness: 0.92, metalness: 0.16 });
     islandDefs.forEach((d, i) => {
       const g = new THREE.Group();
-      const top = new THREE.Mesh(new THREE.CylinderGeometry(6 * d.s, 5 * d.s, 1.8, 18), grassMat);
-      const bottom = new THREE.Mesh(new THREE.ConeGeometry(5 * d.s, 9 * d.s, 14), iRockMat);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(5.8 * d.s, 6.2 * d.s, 0.85, 18), hullMat);
+      top.position.y = 0;
+      const bottom = new THREE.Mesh(new THREE.ConeGeometry(5.5 * d.s, 8.5 * d.s, 14), islandRockMat);
       bottom.rotation.x = Math.PI;
-      bottom.position.y = -5.4 * d.s;
+      bottom.position.y = -4.4 * d.s;
       g.add(top, bottom);
-      if (i % 2 === 0) {
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.44, 3.2, 8), trunkMat);
-        trunk.position.y = 2.4;
-        const leaves = new THREE.Mesh(new THREE.ConeGeometry(2.5, 5.4, 10), leafMat);
-        leaves.position.y = 6.2;
-        g.add(trunk, leaves);
-        world.sway.push({ obj: leaves, phase: i * 0.9, amp: 0.11, base: leaves.rotation.z });
-        world.sway.push({ obj: trunk, phase: i * 0.9 + 0.4, amp: 0.035, base: 0 });
-      } else {
-        const hut = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.7, 3.2), hutMat);
-        hut.position.y = 2.2;
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.6, 4), trunkMat);
-        roof.position.y = 4.4;
-        roof.rotation.y = Math.PI / 4;
-        g.add(hut, roof);
+      const relayMast = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * d.s, 0.28 * d.s, 3.2 * d.s, 8), armorMat);
+      relayMast.position.y = 2.0 * d.s;
+      g.add(relayMast);
+      const relayCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.65 * d.s, 0), cyanMat);
+      relayCore.position.y = 4.0 * d.s;
+      g.add(relayCore);
+      for (let j = 0; j < 3; j++) {
+        const thruster = new THREE.Mesh(new THREE.CylinderGeometry(0.38 * d.s, 0.62 * d.s, 1.1 * d.s, 8), darkGlassMat);
+        thruster.position.set(Math.cos(j * Math.PI * 2 / 3) * 2.3 * d.s, -0.9 * d.s, Math.sin(j * Math.PI * 2 / 3) * 2.3 * d.s);
+        g.add(thruster);
       }
       g.position.set(d.x, d.y, d.z);
       g.userData.baseY = d.y;
@@ -542,277 +721,45 @@ const World = (() => {
     islandGroup.traverse(o => { if (o.isMesh) o.castShadow = shadowOn; });
     scene.add(islandGroup);
 
-    // ---------- mây: 3 lớp + biển mây dưới ----------
+    // ---------- lighting language / map variants ----------
+    const outpost = new THREE.Group();
+    outpost.name = 'Stormglass_Blacksite_Overlay';
+    const outpostWallMat = new THREE.MeshStandardMaterial({ color: 0x1a2632, roughness: 0.58, metalness: 0.82 });
+    const outpostAccent = new THREE.MeshStandardMaterial({ color: 0x8f2e37, emissive: 0x52131c, emissiveIntensity: 0.9, metalness: 0.42 });
+    [
+      [-33, -17, 0.12], [33, -17, -0.12], [-33, 17, -0.12], [33, 17, 0.12]
+    ].forEach(p => {
+      addMapBox(outpost, 7.2, 1.5, 0.9, outpostWallMat, p[0], 0.75, p[1], p[2], true, true);
+      addMapBox(outpost, 6.5, 0.14, 0.96, outpostAccent, p[0], 1.5, p[1], p[2], true, true);
+    });
+    [[-40, -32], [40, -32], [-40, 32], [40, 32]].forEach(p => {
+      addMapCylinder(outpost, 0.3, 0.42, 5.6, outpostWallMat, p[0], 2.8, p[1], true);
+    });
+    outpost.visible = false;
+    scene.add(outpost);
+    world.outpost = outpost;
+    world.setMap = function (name) {
+      const isOutpost = name === 'blackout';
+      outpost.visible = isOutpost;
+      world.mapName = isOutpost ? 'STORMGLASS BLACKSITE' : 'AEGIS-09 SALVAGE COMPLEX';
+    };
+
+    // ---------- clouds ----------
     const cloudLayers = [
-      makeCloudLayer({ count: 9, seed: 11, size: 16, radius: 260, y: 95, jitter: 26, opacity: 0.55, speed: 0.9 }),
-      makeCloudLayer({ count: 10, seed: 47, size: 11, radius: 190, y: 62, jitter: 20, opacity: 0.7, speed: 1.5 }),
-      makeCloudLayer({ count: 8, seed: 83, size: 7, radius: 130, y: 38, jitter: 14, opacity: 0.82, speed: 2.4 }),
-      makeCloudLayer({ count: 16, seed: 129, size: 20, radius: 180, y: -26, jitter: 18, opacity: 0.9, speed: 0.5 })
+      makeCloudLayer({ count: 9, seed: 11, size: 16, radius: 260, y: 95, jitter: 26, opacity: 0.48, speed: 0.9 }),
+      makeCloudLayer({ count: 10, seed: 47, size: 11, radius: 190, y: 62, jitter: 20, opacity: 0.62, speed: 1.5 }),
+      makeCloudLayer({ count: 8, seed: 83, size: 7, radius: 130, y: 38, jitter: 14, opacity: 0.72, speed: 2.4 }),
+      makeCloudLayer({ count: 16, seed: 129, size: 20, radius: 180, y: -26, jitter: 18, opacity: 0.78, speed: 0.5 })
     ];
     cloudLayers.forEach(c => scene.add(c));
     world.clouds = cloudLayers;
 
-    // ---------- cỏ & đá ----------
-    const tuftGeo = new THREE.ConeGeometry(0.3, 1.6, 5);
-    const tuftMat = new THREE.MeshStandardMaterial({ color: 0x6d8048, roughness: 1 });
-    const tuftCount = q === 'low' ? 70 : 180;
-    const tufts = new THREE.InstancedMesh(tuftGeo, tuftMat, tuftCount);
-    const dummy = new THREE.Object3D();
-    let ts = 5;
-    const trand = () => { ts = (ts * 1664525 + 1013904223) >>> 0; return ts / 4294967296; };
-    for (let i = 0; i < tuftCount; i++) {
-      const a = trand() * Math.PI * 2;
-      const r = 10 + trand() * 48;
-      dummy.position.set(Math.cos(a) * r, 0.7, Math.sin(a) * r);
-      dummy.rotation.set((trand() - 0.5) * 0.5, trand() * Math.PI, (trand() - 0.5) * 0.5);
-      const sc = 0.7 + trand() * 1.6;
-      dummy.scale.set(sc, sc, sc);
-      dummy.updateMatrix();
-      tufts.setMatrixAt(i, dummy.matrix);
-    }
-    tufts.instanceMatrix.needsUpdate = true;
-    scene.add(tufts);
-
-    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
-    const rockCount = q === 'low' ? 14 : 30;
-    const rocks = new THREE.InstancedMesh(rockGeo, rockMat, rockCount);
-    for (let i = 0; i < rockCount; i++) {
-      const a = trand() * Math.PI * 2;
-      const r = 13 + trand() * 44;
-      dummy.position.set(Math.cos(a) * r, 0.35, Math.sin(a) * r);
-      dummy.rotation.set(trand() * 3, trand() * 3, trand() * 3);
-      const sc = 0.5 + trand() * 2.0;
-      dummy.scale.set(sc, sc * 0.8, sc);
-      dummy.updateMatrix();
-      rocks.setMatrixAt(i, dummy.matrix);
-      world.playerColliders.push({
-        x: dummy.position.x,
-        z: dummy.position.z,
-        shape: 'circle',
-        radius: sc * 0.82,
-        minY: dummy.position.y - sc * 0.8,
-        maxY: dummy.position.y + sc * 0.8,
-        yaw: 0
-      });
-    }
-    rocks.instanceMatrix.needsUpdate = true;
-    rocks.castShadow = shadowOn;
-    scene.add(rocks);
-
-    // ============================================================
-    //  PROPS
-    // ============================================================
-    const props = new THREE.Group();
-    scene.add(props);
-    const crateMat = Tex.mat('crate', { rx: 1, ry: 1, roughness: 0.85, metalness: 0.05 });
-    const contMatA = Tex.mat('container', { rx: 3, ry: 1, roughness: 0.7, metalness: 0.4 });
-    const contMatB = Tex.mat('container', { rx: 3, ry: 1, roughness: 0.7, metalness: 0.4, color: 0x9fb4c4 });
-    const rustMat = Tex.mat('rust', { rx: 2, ry: 2, roughness: 0.75, metalness: 0.5 });
-    const barrelMat = Tex.mat('military', { rx: 2, ry: 1, roughness: 0.55, metalness: 0.5 });
-    const hazardMat = Tex.mat('hazard', { rx: 1, ry: 1, roughness: 0.7, metalness: 0.2, side: THREE.DoubleSide });
-    const plateMat = Tex.mat('floorplate', { rx: 4, ry: 4, roughness: 0.78, metalness: 0.38, bumpScale: 0.02 });
-
-    function addBox(w, h, d, mat, x, y, z, ry) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-      m.position.set(x, y, z);
-      if (ry) m.rotation.y = ry;
-      m.castShadow = shadowOn;
-      m.receiveShadow = true;
-      m.userData.playerSolid = true;
-      props.add(m);
-      return m;
-    }
-
-    // bệ đáp
-    const pad = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.24, 40), plateMat);
-    pad.position.set(0, 0.12, 30);
-    pad.receiveShadow = true;
-    pad.userData.playerSolid = true;
-    pad.userData.platform = true;
-    pad.userData.blocksBullets = true;
-    props.add(pad);
-    world.platforms.push({ x: 0, z: 30, radius: 9, topY: 0.24, baseY: 0, height: 0.24, collider: pad });
-    const padRing = new THREE.Mesh(new THREE.TorusGeometry(7.6, 0.3, 8, 48), hazardMat);
-    padRing.rotation.x = Math.PI / 2;
-    padRing.position.set(0, 0.28, 30);
-    props.add(padRing);
-    const padMark = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 6.4), hazardMat);
-    padMark.rotation.x = -Math.PI / 2;
-    padMark.position.set(0, 0.26, 30);
-    props.add(padMark);
-
-    // container
-    addBox(6.2, 2.7, 2.5, contMatA, -20, 1.35, 22, 0.28);
-    addBox(6.2, 2.7, 2.5, contMatB, -20.4, 1.35, 24.9, 0.32);
-    addBox(6.2, 2.7, 2.5, contMatA, -20.2, 4.05, 23.4, 0.3);
-    addBox(6.2, 2.7, 2.5, contMatB, 24, 1.35, -14, -0.5);
-    addBox(6.2, 2.7, 2.5, rustMat, 26.4, 1.35, -12.2, -0.42);
-
-    // thùng quân nhu
-    const cratePos = [
-      [14, 0.75, 26, 0.2], [15.3, 0.75, 26.6, -0.15], [14.6, 2.15, 26.3, 0.45],
-      [-14, 0.75, -18, 0.7], [-15.2, 0.75, -17.4, 0.1], [-14.6, 2.15, -17.7, -0.3],
-      [8, 0.75, -26, 1.1], [9.2, 0.75, -25.4, 0.4],
-      [-28, 0.75, -6, 0.9], [-28.6, 0.75, -7.4, 0.2]
-    ];
-    cratePos.forEach(c => addBox(1.5, 1.5, 1.5, crateMat, c[0], c[1], c[2], c[3]));
-
-    // thùng phuy
-    const barrelPos = [
-      [12.4, 0.95, 28.4], [13.1, 0.95, 28.9], [12.7, 2.45, 28.6],
-      [-16.6, 0.95, -19.6], [-17.3, 0.95, -19.1],
-      [22.2, 0.95, -11.2], [23, 0.95, -10.6], [22.6, 2.45, -10.9],
-      [-26, 0.95, -8.8], [6.4, 0.95, -28.4]
-    ];
-    barrelPos.forEach((b, i) => {
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.9, 14), i % 3 === 0 ? rustMat : barrelMat);
-      m.position.set(b[0], b[1], b[2]);
-      m.castShadow = shadowOn;
-      m.receiveShadow = true;
-      m.userData.playerSolid = true;
-      props.add(m);
-    });
-
-    // biển cảnh báo
-    const signDefs = [
-      [10, 20, 0.6], [-12, 24, -0.4], [18, -20, 1.2], [-22, -14, 0.3], [30, 6, -0.9]
-    ];
-    signDefs.forEach(s => {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8), darkMat);
-      post.position.set(s[0], 1.2, s[1]);
-      post.castShadow = shadowOn;
-      post.userData.playerSolid = true;
-      props.add(post);
-      const board = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.0), hazardMat);
-      board.position.set(s[0], 2.3, s[1]);
-      board.rotation.y = s[2];
-      props.add(board);
-    });
-
-    // rào chắn
-    const fenceDefs = [
-      [-8, 12, 0.3], [-16, 12, 0.3], [12, 8, -0.6], [20, 10, -0.6],
-      [-30, 2, 0.9], [30, 0, 0.9]
-    ];
-    fenceDefs.forEach(f => {
-      for (let i = 0; i < 4; i++) {
-        const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.5, 0.16), rimMat);
-        post.position.set(f[0] + i * 2.0 * Math.cos(f[2]), 0.75, f[1] + i * 2.0 * Math.sin(f[2]));
-        post.castShadow = shadowOn;
-        post.userData.playerSolid = true;
-        props.add(post);
-      }
-      for (let k = 0; k < 2; k++) {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.1, 0.12), rimMat);
-        rail.position.set(f[0] + 3.0 * Math.cos(f[2]), 0.6 + k * 0.6, f[1] + 3.0 * Math.sin(f[2]));
-        rail.rotation.y = -f[2];
-        rail.castShadow = shadowOn;
-        rail.userData.playerSolid = true;
-        props.add(rail);
-      }
-    });
-
-    // ăng-ten hỏng
-    const antenna = new THREE.Group();
-    const aMast = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 16, 10), mastMat);
-    aMast.position.y = 8;
-    aMast.userData.playerSolid = true;
-    antenna.add(aMast);
-    for (let i = 0; i < 4; i++) {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(3.2 - i * 0.5, 0.08, 0.08), mastMat);
-      bar.position.y = 12 + i * 1.1;
-      bar.rotation.y = i * 0.6;
-      bar.userData.playerSolid = true;
-      antenna.add(bar);
-    }
-    const aLight = makeBlinkingLight(0xff3b2f);
-    aLight.position.y = 16.4;
-    antenna.add(aLight);
-    world.blinkers.push(aLight);
-    antenna.position.set(-30, 0, 26);
-    antenna.rotation.z = 0.16;
-    antenna.traverse(o => { if (o.isMesh) o.castShadow = shadowOn; });
-    props.add(antenna);
-
-    // máy móc hỏng
-    const wreck1 = new THREE.Group();
-    const wBody = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 2.4), rustMat);
-    wBody.position.y = 1.1;
-    wBody.userData.playerSolid = true;
-    const wStack = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 3.4, 12), rustMat);
-    wStack.position.set(-0.9, 1.7, -0.5);
-    wStack.userData.playerSolid = true;
-    wreck1.add(wBody, wStack);
-    wreck1.position.set(28, 0, 22);
-    wreck1.rotation.set(0.06, 0.7, 0.1);
-    wreck1.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = true; } });
-    props.add(wreck1);
-
-    const wreck2 = new THREE.Group();
-    const w2Body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 3.0, 16), rustMat);
-    w2Body.rotation.z = Math.PI / 2;
-    w2Body.position.y = 1.5;
-    w2Body.userData.playerSolid = true;
-    wreck2.add(w2Body);
-    const w2Fin = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.2, 1.6), rustMat);
-    w2Fin.position.set(0, 3.0, 0);
-    w2Fin.userData.playerSolid = true;
-    wreck2.add(w2Fin);
-    wreck2.position.set(-26, 0, 18);
-    wreck2.rotation.y = -0.5;
-    wreck2.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = true; } });
-    props.add(wreck2);
-
-    // mảnh vỡ
-    const debrisGeoms = [];
-    let ds = 77;
-    const drand = () => { ds = (ds * 1664525 + 1013904223) >>> 0; return ds / 4294967296; };
-    const debrisCount = q === 'low' ? 8 : 20;
-    for (let i = 0; i < debrisCount; i++) {
-      const size = 0.3 + drand() * 0.9;
-      const g = new THREE.DodecahedronGeometry(size, 0);
-      const a = drand() * Math.PI * 2;
-      const r = 12 + drand() * 40;
-      const debrisX = Math.cos(a) * r;
-      const debrisZ = Math.sin(a) * r;
-      g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(drand() * 3, drand() * 3, drand() * 3)));
-      g.applyMatrix4(new THREE.Matrix4().makeTranslation(debrisX, 0.25, debrisZ));
-      debrisGeoms.push(g);
-      world.playerColliders.push({
-        x: debrisX,
-        z: debrisZ,
-        shape: 'circle',
-        radius: size * 0.82,
-        minY: 0.25 - size,
-        maxY: 0.25 + size,
-        yaw: 0
-      });
-    }
-    const debris = new THREE.Mesh(mergeGeoms(debrisGeoms), rockMat);
-    debris.castShadow = shadowOn;
-    debris.receiveShadow = true;
-    props.add(debris);
-
-    // cột đèn
-    [[16, 14], [-18, 10], [4, -30]].forEach(p => {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 6.4, 10), darkMat);
-      pole.position.set(p[0], 3.2, p[1]);
-      pole.castShadow = shadowOn;
-      pole.userData.playerSolid = true;
-      props.add(pole);
-      const headMat = new THREE.MeshStandardMaterial({ color: 0xfff0c8, emissive: 0xffd9a0, emissiveIntensity: 1.8 });
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 0.4), headMat);
-      head.position.set(p[0], 6.4, p[1]);
-      props.add(head);
-      world.lamps.push(headMat);
-    });
-
     // ---------- mood theo mission ----------
     const moods = {
-      clear: { sky: [0x1e4f86, 0x6fa8cf, 0xd8e8f2], fog: [0xb9d2e2, 70, 420], sun: 1.35, hemi: 0.75 },
-      squall: { sky: [0x1b2a3c, 0x4a6a86, 0x9db4c4], fog: [0x7e99ad, 40, 260], sun: 0.85, hemi: 0.55 },
-      gale: { sky: [0x2a5580, 0x84b4d6, 0xe2f0f8], fog: [0xc2d9e8, 95, 520], sun: 1.6, hemi: 0.95 },
-      blackout: { sky: [0x101827, 0x273b50, 0x53687a], fog: [0x53687a, 35, 210], sun: 0.55, hemi: 0.34 }
+      clear: { sky: [0x102538, 0x426a82, 0x91adbc], fog: [0x829db0, 66, 390], sun: 1.22, hemi: 0.82 },
+      squall: { sky: [0x101c2a, 0x2c465b, 0x637e91], fog: [0x627b8c, 38, 250], sun: 0.78, hemi: 0.55 },
+      gale: { sky: [0x1b3e58, 0x5d8eaa, 0xa9c2cf], fog: [0x93afbd, 88, 480], sun: 1.38, hemi: 0.9 },
+      blackout: { sky: [0x080f19, 0x142838, 0x283d4e], fog: [0x344b5c, 32, 205], sun: 0.44, hemi: 0.28 }
     };
 
     let domeMesh = null;
@@ -857,11 +804,11 @@ const World = (() => {
     });
 
 
-    // Register only explicitly solid geometry after all map objects are constructed.
-    // OBB X/Z extents preserve object yaw; world AABB provides vertical min/max.
-    scene.updateMatrixWorld(true);
-    scene.traverse(o => {
+    // Register explicitly solid meshes. Can be called again for late-loaded static assets.
+    const registeredColliderMeshes = new WeakSet();
+    function registerPlayerColliderMesh(o) {
       if (!o.isMesh || !(o.userData.playerSolid === true || o.userData.blocksBullets === true)) return;
+      if (registeredColliderMeshes.has(o)) return;
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       const localBox = o.geometry.boundingBox;
       if (!localBox) return;
@@ -889,14 +836,22 @@ const World = (() => {
         maxY: worldBounds.max.y,
         isPlatform: o.userData.platform === true
       });
-    });
+      registeredColliderMeshes.add(o);
+    }
+    world.registerPlayerColliders = function (root) {
+      scene.updateMatrixWorld(true);
+      const target = root || scene;
+      if (target && typeof target.traverse === 'function') target.traverse(registerPlayerColliderMesh);
+      return this.playerColliders.length;
+    };
+    world.registerPlayerColliders(scene);
 
     // ---------- animation ----------
     let t = 0;
     world.update = function (dt, reducedMotion) {
       t += dt;
       const k = reducedMotion ? 0.2 : 1;
-      blades.rotation.z += dt * 0.85 * k;
+      blades.rotation.y += dt * 0.42 * k;
       core.material.emissiveIntensity = 1.35 + Math.sin(t * 2.6) * 0.4;
       coreRing.rotation.z += dt * 0.8 * k;
       coreRing.material.emissiveIntensity = 1.4 + Math.sin(t * 2.6) * 0.4;

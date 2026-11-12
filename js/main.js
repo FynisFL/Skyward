@@ -90,7 +90,10 @@
     window.SKYWARD_ENV = pmrem.fromScene(scene, 0.03, 1, 1500).texture;
     pmrem.dispose();
   } catch (e) { console.warn('[Skyward] Env map unavailable', e); }
-  if (window.SkywardAssetFactory) world.scifiProps = window.SkywardAssetFactory.addWorldProps(scene);
+  if (window.SkywardAssetFactory) {
+    world.scifiProps = window.SkywardAssetFactory.addWorldProps(scene);
+    if (world.registerPlayerColliders) world.registerPlayerColliders(world.scifiProps);
+  }
   window.__WORLD_MS__ = +(performance.now() - __w0).toFixed(1);
   const particles = new ParticleSystem(scene, settings.quality === 'low' ? 500 : 900);
   const dustParticles = new ParticleSystem(scene, settings.quality === 'low' ? 200 : 420, {

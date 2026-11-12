@@ -271,11 +271,11 @@
     const group = new THREE.Group();
     group.name = 'Quaternius_SciFi_Environment_Props';
     const placements = [
-      { x: -19, z: -19, s: 1.35, r: 0.3, n: 'Prop_Crate' },
-      { x: 20, z: -16, s: 1.15, r: -0.4, n: 'Prop_Crate' },
-      { x: -22, z: 17, s: 1.1, r: 0.75, n: 'Prop_Crate' },
-      { x: 23, z: 18, s: 1.3, r: -0.2, n: 'Prop_Crate' },
-      { x: 0, z: -27, s: 0.85, r: 0.2, n: 'Prop_Ammo' }
+      { x: 35, z: -5, s: 1.05, r: 0.15, n: 'Prop_Crate' },
+      { x: -35, z: -7, s: 0.95, r: -0.25, n: 'Prop_Crate' },
+      { x: -8, z: 27, s: 0.92, r: 0.35, n: 'Prop_Crate' },
+      { x: 8, z: 27, s: 0.92, r: -0.35, n: 'Prop_Crate' },
+      { x: 0, z: 31, s: 0.82, r: 0.2, n: 'Prop_Ammo' }
     ];
     placements.forEach(p => {
       const model = createStatic(p.n);
@@ -283,7 +283,14 @@
       model.position.set(p.x, 0.02, p.z);
       model.rotation.y = p.r;
       model.scale.setScalar(p.s);
-      model.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.userData.decorative = true; } });
+      model.traverse(o => {
+        if (!o.isMesh) return;
+        o.castShadow = true;
+        o.receiveShadow = true;
+        o.userData.decorative = false;
+        o.userData.playerSolid = true;
+        o.userData.blocksBullets = true;
+      });
       group.add(model);
     });
     scene.add(group);
