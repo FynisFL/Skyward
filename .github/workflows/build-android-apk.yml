@@ -38,6 +38,8 @@ jobs:
 
       - name: Run Skyward QA checks
         run: node tools/qa/validate.mjs
+      - name: Run Phase 8 adaptive performance tests
+        run: node tools/qa/phase8.test.mjs
 
       - name: Verify web and Android assets are identical
         run: |
