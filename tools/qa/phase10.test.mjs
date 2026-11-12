@@ -31,12 +31,13 @@ replay.recordInput('touch-action-up', { action: 'fire' });
 replay.recordInput('game-pause', { source: 'visibility' });
 replay.beginFrame(0.02);
 replay.recordInput('game-resume', { source: 'user' });
+replay.recordInput('run-abandon', { abandoned: true, mission: 'm1', wave: 2 });
 events.emit('phase10:test', { marker: 2 });
 replay.endFrame();
 replay.finish({ victory: true, score: 987 });
 const tape = replay.getTape();
 assert.equal(tape.version, 2);
-assert.equal(tape.inputs.length, 7);
+assert.equal(tape.inputs.length, 8);
 assert.equal(tape.frames.length, 2);
 assert.equal(tape.events.length, 2);
 assert.equal(tape.inputs[0].frame, 0);
@@ -55,7 +56,7 @@ events.emit('phase10:test', { marker: 1 });
 frame = replay.nextFrame();
 assert.equal(frame.index, 1);
 assert.deepEqual(replay.drainInputsForFrame(1).map(input => input.action), [
-  'touch-action-up', 'game-pause', 'game-resume'
+  'touch-action-up', 'game-pause', 'game-resume', 'run-abandon'
 ]);
 events.emit('phase10:test', { marker: 2 });
 assert.equal(replay.finish(tape.outcome).divergences, 0);
