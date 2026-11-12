@@ -34,6 +34,15 @@ assert.equal(ai.isInsideRadialAttack(0, 0, 0, 0, 3.55, 0, 2.2, 1.75), false);
 assert.equal(ai.isInsideRadialAttack(0, 0, 3, 0, 3.55, 0, 1.6, 1.75), true);
 assert.equal(ai.isInsideRadialAttack(0, 0, NaN, 0, 3), false);
 
+// Ray-sphere fallback keeps enemies targetable when animated mesh bounds miss.
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 0, 0, -10, 1, 140), 9);
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 3, 0, -10, 1, 140), null);
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 0, 0, 10, 1, 140), null);
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 0, 0, -10, 1, 8), null);
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 0, 0, -10, 1, 10), 9);
+assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, 0, 0, 0, -10, 1, 140), null);
+assert.equal(ai.raySphereDistance(NaN, 0, 0, 0, 0, -1, 0, 0, -10, 1, 140), null);
+
 // Focus fire during a tell can interrupt an attack, while damage below threshold accumulates.
 assert.deepEqual(ai.addStagger(0, 15, 25), { value: 15, interrupted: false });
 assert.deepEqual(ai.addStagger(15, 10, 25), { value: 0, interrupted: true });
