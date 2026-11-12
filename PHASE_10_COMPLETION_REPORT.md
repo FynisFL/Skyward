@@ -4,7 +4,7 @@
 
 - Upgraded new replay recordings to schema v2 while keeping v1 tape import support.
 - Added ordered touch joystick axis, touch-look delta and touch action press/release input records.
-- Added explicit pause/resume records, including source metadata for browser and Android lifecycle interruptions.
+- Added explicit pause/resume and abandon-to-menu records, including source metadata for browser and Android lifecycle interruptions.
 - Prevented physical touch, keyboard and mouse interaction from interfering with an active replay.
 - Added deterministic gameplay checkpoints every 120 replay frames.
 - Checkpoints compare player, weapon, grenade/airstrike state, wave, enemy projectiles and AI timers, pickup phase/position, upgrades and gameplay/AI/weapon RNG state.
@@ -15,21 +15,28 @@
 
 ## Automated verification
 
-Update this table from the latest Phase 10 CI runs.
+Verified by GitHub Actions on commit `aa6a4dd9` for quality/web deploy and runtime commit `680c26c6` for the Android build pipeline. Manual gameplay and cross-device replay remain separate checks.
 
 | Check | Status |
 |---|---|
-| JavaScript syntax | CI |
-| Phase 7 deterministic tests | CI |
-| Phase 8 adaptive rendering tests | CI |
-| Phase 9 benchmark tests | CI |
-| Phase 10 Replay v2 tests | CI |
-| Repository QA validator | CI |
-| Web/Android runtime parity | CI |
-| Android debug APK build | CI |
+| JavaScript syntax | PASS |
+| Phase 7 deterministic tests | PASS |
+| Phase 8 adaptive rendering tests | PASS |
+| Phase 9 benchmark tests | PASS |
+| Phase 10 Replay v2 tests | PASS |
+| Repository QA validator | PASS |
+| Web/Android runtime parity | PASS |
+| Android debug APK build | PASS on runtime commit `680c26c6` |
 | Desktop replay manual test | NOT RUN until performed |
 | Android WebView replay manual test | NOT RUN until performed |
 | Cross-device replay matrix | NOT RUN until performed |
+
+## CI evidence
+
+- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185064633)
+- [Web deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185064573)
+- [Android quality + APK pipeline — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185052824) — source checks, Phase 7–10 tests, repository validator, web/Android parity and debug APK build.
+- [Earlier Android build on Replay v2 runtime — PASS](https://github.com/FynisFL/Skyward/actions/runs/43184650817)
 
 ## Manual verification still required
 
