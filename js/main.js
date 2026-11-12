@@ -186,13 +186,20 @@
     getHitMeshes: () => waves.hitMeshes(),
     getWorldMeshes: getVisibleWorldMeshes,
     onShot: () => { G.shotsFired++; events.emit('weapon:fire', { weapon: weapons.current, shotsFired: G.shotsFired }); },
-    onHit: (e, dmg, killed, source) => {
+    onHit: (e, dmg, killed, source, hitMeta) => {
       // Accuracy chỉ đo phát bắn từ vũ khí; kỹ năng diện rộng không phải viên đạn.
       if (source === 'firearm') {
         G.shotsHit++;
         G.score += 10;
       }
-      events.emit('damage:dealt', { target: e.type, damage: Number(dmg.toFixed(3)), killed: !!killed, source: source || 'unknown' });
+      events.emit('damage:dealt', {
+        target: e.type, damage: Number(dmg.toFixed(3)), killed: !!killed,
+        source: source || 'unknown', weakpoint: !!(hitMeta && hitMeta.weakpoint),
+        weakpointExposed: !!(hitMeta && hitMeta.weakpointExposed)
+      });
+      if (hitMeta && hitMeta.weakpointExposed) {
+        events.emit('boss:weakpoint-hit', { damage: Number(dmg.toFixed(3)), killed: !!killed });
+      }
       ui.hitmarker(killed);
       ui.showDamageNumber(camera, e, dmg, killed);
     },
@@ -233,10 +240,13 @@
       if (endless || (!finalWave && n % 2 === 0)) presentUpgradeChoice();
     },
     onAllClear: () => { events.emit('mission:completed', { mission: G.mission.id, wave: G.wave }); endRound(true); },
-    onPlayerHit: (dmg, pos) => {
+    onPlayerHit: (dmg, pos, hitMeta) => {
       if (G.state !== 'playing' || player.dead) return;
       player.damage(dmg);
-      events.emit('damage:taken', { damage: Number(dmg.toFixed(3)), health: player.health });
+      events.emit('damage:taken', {
+        damage: Number(dmg.toFixed(3)), health: player.health,
+        source: hitMeta && hitMeta.source || 'projectile', enemyType: hitMeta && hitMeta.enemyType || 'unknown'
+      });
       ui.damageDirection(pos, player);
       ui.damageFlash();
       Sound.hurt();
@@ -1357,6 +1367,16 @@
           flinchTime: replayNumber(enemy.flinchT),
           flinchDirection: replayVector(enemy.flinchDir),
           deathTime: replayNumber(enemy.deathT),
+          attackState: enemy.attackState,
+          attackKind: enemy.attackKind,
+          attackTimer: replayNumber(enemy.attackTimer),
+          attackCooldown: replayNumber(enemy.attackCooldown),
+          attackTarget: replayVector(enemy.attackTarget),
+          attackDirection: replayVector(enemy.attackDirection),
+          attackHit: !!enemy.attackHit,
+          staggerMeter: replayNumber(enemy.staggerMeter),
+          bossPhase: enemy.bossPhase || 0,
+          weakpointOpen: replayNumber(enemy.weakpointOpenT),
           projectiles: (enemy.projectiles || []).map(projectile => ({
             position: replayVector(projectile.mesh && projectile.mesh.position),
             velocity: replayVector(projectile.vel),
