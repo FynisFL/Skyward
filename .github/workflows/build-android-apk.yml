@@ -11,7 +11,6 @@ on:
       - "gradle.properties"
       - ".github/workflows/build-android-apk.yml"
       - "tools/qa/**"
-      - "PHASE_9_*.md"
       - "index.html"
       - "css/**"
       - "js/**"
