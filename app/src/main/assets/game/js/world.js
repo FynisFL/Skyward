@@ -581,8 +581,8 @@ const World = (() => {
     const props = new THREE.Group();
     props.name = 'Aegis09_Maintenance_And_Cargo';
     scene.add(props);
-    const addBox = (w, h, d, mat, x, y, z, ry = 0) =>
-      addMapBox(props, w, h, d, mat, x, y, z, ry, true, true);
+    const addBox = (w, h, d, mat, x, y, z, ry = 0, solid = true, blocksBullets = true) =>
+      addMapBox(props, w, h, d, mat, x, y, z, ry, solid, blocksBullets);
     const addCylinder = (rt, rb, h, mat, x, y, z) =>
       addMapCylinder(props, rt, rb, h, mat, x, y, z, true);
 
