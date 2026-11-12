@@ -4,7 +4,7 @@
 
 - Added `js/combat_ai.js` with deterministic profiles and pure combat decision helpers.
 - Split enemy movement intent into ranged support, flanking, frontline and Commander roles.
-- Drone now marks an aimed shot before firing; Speeder telegraphs a locked charge lane and recovers after hit/miss; Brute telegraphs a ground-slam radius and resolves against the locked position.
+- Drone now marks an aimed shot before firing; Speeder telegraphs a locked charge lane and recovers after hit/miss; Brute telegraphs a ground-slam radius and resolves against the locked position with vertical separation for platform counterplay.
 - Focused damage during telegraphs accumulates stagger and can interrupt an attack. The meter decays with simulation time.
 - Commander now has three HP phases: single shot, three-projectile fan and five-projectile fan.
 - Commander reactor damage is conditional: normal damage while closed, 2.5× during the 1.15-second post-volley exposure window.
