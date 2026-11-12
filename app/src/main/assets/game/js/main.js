@@ -1094,6 +1094,27 @@
   document.getElementById('app').appendChild(dbgEl);
   let dbgOn = false;
   let dbgAccum = 0, dbgFrames = 0, dbgMax = 0, dbgTimer = 0;
+  const perfSamples = [];
+  const PERF_SAMPLE_LIMIT = 600;
+  let perfTimer = 0;
+  let perfSnapshot = { p50: 0, p95: 0, p99: 0, max: 0, samples: 0 };
+  function percentile(sorted, p) {
+    if (!sorted.length) return 0;
+    const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
+    return sorted[index];
+  }
+  function getPerformanceSnapshot() {
+    const info = renderer.info;
+    return {
+      p50: perfSnapshot.p50, p95: perfSnapshot.p95, p99: perfSnapshot.p99,
+      max: perfSnapshot.max, samples: perfSnapshot.samples,
+      drawCalls: info.render.calls, triangles: info.render.triangles,
+      geometries: info.memory.geometries, textures: info.memory.textures,
+      particles: particles.activeCount + dustParticles.activeCount,
+      decals: vfx.decals.activeCount, enemies: waves.aliveCount(),
+      mission: G.mission.id, state: G.state, wave: G.wave
+    };
+  }
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'F3') {
@@ -1105,22 +1126,39 @@
   });
 
   function updateDebug(dt) {
+    perfSamples.push(dt);
+    if (perfSamples.length > PERF_SAMPLE_LIMIT) perfSamples.shift();
+    perfTimer -= dt;
+    if (perfTimer <= 0 && perfSamples.length) {
+      perfTimer = 0.5;
+      const sorted = perfSamples.slice().sort((a, b) => a - b);
+      perfSnapshot = {
+        p50: percentile(sorted, 0.50) * 1000,
+        p95: percentile(sorted, 0.95) * 1000,
+        p99: percentile(sorted, 0.99) * 1000,
+        max: sorted[sorted.length - 1] * 1000,
+        samples: sorted.length
+      };
+    }
     if (!dbgOn) return;
     dbgAccum += dt;
     dbgFrames++;
     if (dt > dbgMax) dbgMax = dt;
     dbgTimer -= dt;
     if (dbgTimer > 0) return;
-    dbgTimer = 0.25;
+    dbgTimer = 0.5;
     const avg = dbgAccum / Math.max(1, dbgFrames);
     const info = renderer.info;
     const fps = Math.round(1 / Math.max(0.0001, avg));
     const over = avg > 0.0167 ? ' <span class="dbg-warn">OVER</span>' : '';
     dbgEl.innerHTML =
       '<span class="dbg-title">DEBUG · F3</span><br>' +
-      'FPS        ' + fps + '<br>' +
+      'FPS avg    ' + fps + '<br>' +
       'frame avg  ' + (avg * 1000).toFixed(2) + ' ms' + over + '<br>' +
-      'frame max  ' + (dbgMax * 1000).toFixed(2) + ' ms<br>' +
+      'frame p50  ' + perfSnapshot.p50.toFixed(2) + ' ms<br>' +
+      'frame p95  ' + perfSnapshot.p95.toFixed(2) + ' ms<br>' +
+      'frame p99  ' + perfSnapshot.p99.toFixed(2) + ' ms<br>' +
+      'frame max  ' + perfSnapshot.max.toFixed(2) + ' ms<br>' +
       'draw calls ' + info.render.calls + '<br>' +
       'triangles  ' + (info.render.triangles / 1000).toFixed(1) + 'k<br>' +
       'geometries ' + info.memory.geometries + '<br>' +
@@ -1132,8 +1170,12 @@
     dbgAccum = 0; dbgFrames = 0; dbgMax = 0;
   }
 
-  // debug handle (dùng cho kiểm thử tự động)
-  window.__SKYWARD__ = { G: G, player: player, weapons: weapons, waves: waves, world: world, ui: ui, vfx: vfx, tex: Tex, renderer: renderer, start: startRound, menu: toMenu };
+  // Read-only diagnostic surface for automated QA and browser-console inspection.
+  window.__SKYWARD__ = {
+    G: G, player: player, weapons: weapons, waves: waves, world: world,
+    ui: ui, vfx: vfx, tex: Tex, renderer: renderer,
+    start: startRound, menu: toMenu, getPerformanceSnapshot: getPerformanceSnapshot
+  };
 
   boot();
 })();
