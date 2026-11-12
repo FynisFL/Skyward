@@ -164,6 +164,9 @@ check('Phase 10 Replay v2 supports touch and lifecycle inputs', () => {
   assert.ok(main.includes("events.emit('replay:checkpoint'"));
   assert.ok(main.includes('getReplayCheckpoint'));
   assert.ok(main.includes("action === 'run-abandon'"), 'Replay must restore abandon-to-menu transitions');
+  assert.ok(main.includes("action === 'upgrade-select'"), 'Replay must restore Endless upgrade choices');
+  assert.ok(main.includes("recordInput('upgrade-select'"), 'Upgrade choices must be recorded in the input tape');
+  assert.ok(main.includes('controls: { sensitivity: player.sensitivity'), 'Replay metadata must snapshot mouse/touch look settings');
   assert.ok(main.includes("replayVersion === 1"), 'Legacy v1 key-pause playback must remain supported');
 });
 
