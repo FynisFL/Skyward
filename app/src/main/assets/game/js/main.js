@@ -374,6 +374,33 @@
     { id:'last-stand', title:'Last Stand', rarity:'legendary', desc:'Sát thương vũ khí và kỹ năng +25%.' }
   ];
   let offeredUpgradeIds = [];
+  let currentUpgradeOptions = [];
+
+  function applyUpgradeChoice(id) {
+    const upgrade = UPGRADE_POOL.find(item => item.id === id);
+    const allowed = currentUpgradeOptions.some(item => item.id === id);
+    if (!upgrade || !allowed || waves.state !== 'upgrade') return false;
+
+    recordInput('upgrade-select', { id: id });
+    offeredUpgradeIds.push(id);
+    if (id === 'overclock') player.mods.damage *= 1.15;
+    else if (id === 'reinforced') { player.maxHealth += 25; player.heal(25); }
+    else if (id === 'gyro') { player.mods.speed *= 1.08; player.mods.cooldown *= 0.9; }
+    else if (id === 'fast-hands') { player.mods.fireRate = (player.mods.fireRate || 1) * 1.1; player.mods.reloadSpeed = (player.mods.reloadSpeed || 1) * 1.18; }
+    else if (id === 'scavenger') { WEAPON_ORDER.forEach(k => weapons.state[k].reserve = Math.min(WEAPONS[k].reserve * 2, weapons.state[k].reserve + WEAPONS[k].mag * 2)); player.heal(20); }
+    else if (id === 'surge') player.mods.cooldown *= 0.88;
+    else if (id === 'critical') player.mods.damage *= 1.20;
+    else if (id === 'vampiric') player.mods.vampiric = (player.mods.vampiric || 0) + 2;
+    else if (id === 'last-stand') player.mods.damage *= 1.25;
+
+    events.emit('upgrade:selected', { id: id });
+    ui.killfeed('Đã cài <b>' + upgrade.title + '</b>');
+    ui.hideUpgrade();
+    waves.continueAfterUpgrade();
+    currentUpgradeOptions = [];
+    return true;
+  }
+
   function presentUpgradeChoice() {
     const weights = { common:55, rare:28, epic:14, legendary:3 };
     const available = UPGRADE_POOL.filter(x => !offeredUpgradeIds.includes(x.id));
@@ -385,21 +412,10 @@
       for (const item of pool) { roll -= weights[item.rarity]; if (roll <= 0) { chosen=item; break; } }
       picks.push(chosen); pool.splice(pool.indexOf(chosen),1);
     }
-    ui.showUpgrade(picks, (id) => {
-      offeredUpgradeIds.push(id);
-      const upgrade = UPGRADE_POOL.find(x => x.id === id);
-      if (id === 'overclock') player.mods.damage *= 1.15;
-      else if (id === 'reinforced') { player.maxHealth += 25; player.heal(25); }
-      else if (id === 'gyro') { player.mods.speed *= 1.08; player.mods.cooldown *= 0.9; }
-      else if (id === 'fast-hands') { player.mods.fireRate = (player.mods.fireRate || 1) * 1.1; player.mods.reloadSpeed = (player.mods.reloadSpeed || 1) * 1.18; }
-      else if (id === 'scavenger') { WEAPON_ORDER.forEach(k => weapons.state[k].reserve = Math.min(WEAPONS[k].reserve * 2, weapons.state[k].reserve + WEAPONS[k].mag * 2)); player.heal(20); }
-      else if (id === 'surge') player.mods.cooldown *= 0.88;
-      else if (id === 'critical') player.mods.damage *= 1.20;
-      else if (id === 'vampiric') player.mods.vampiric = (player.mods.vampiric || 0) + 2;
-      else if (id === 'last-stand') player.mods.damage *= 1.25;
-      ui.killfeed('Đã cài <b>' + (upgrade ? upgrade.title : 'MODULE') + '</b>');
-      waves.continueAfterUpgrade();
-    });
+    currentUpgradeOptions = picks.slice();
+    if (!replay.isPlaying()) {
+      ui.showUpgrade(picks, (id) => applyUpgradeChoice(id));
+    }
   }
 
   function awardProgression(victory) {
@@ -499,6 +515,8 @@
       pauseGame(data.source || 'replay');
     } else if (action === 'game-resume') {
       resumeGame(data.source || 'replay');
+    } else if (action === 'upgrade-select') {
+      applyUpgradeChoice(data.id);
     } else if (action === 'run-abandon') {
       toMenu();
     }
@@ -979,7 +997,8 @@
         inputSchema: 2,
         viewport: { width: Math.round(getViewportSize().width), height: Math.round(getViewportSize().height) },
         devicePixelRatio: window.devicePixelRatio || 1,
-        touchCapable: !!touchCapable
+        touchCapable: !!touchCapable,
+        controls: { sensitivity: player.sensitivity, invertY: !!player.invertY }
       });
     }
     if (hudSetupMode) { hudSetupMode = false; hudSetupBar.classList.add('hidden'); }
@@ -989,6 +1008,11 @@
     ui.hideAll();
     ui.el.hud.classList.remove('hidden');
     player.reset(world);
+    if (playbackTape && playbackTape.metadata && playbackTape.metadata.controls) {
+      const controls = playbackTape.metadata.controls;
+      if (Number.isFinite(Number(controls.sensitivity))) player.sensitivity = Math.max(0.1, Math.min(5, Number(controls.sensitivity)));
+      if (typeof controls.invertY === 'boolean') player.invertY = controls.invertY;
+    }
     weapons.reset();
     if (playbackTape && playbackTape.metadata && ['auto', 'handcannon', 'scout'].indexOf(playbackTape.metadata.weapon) >= 0) {
       weapons.switchWeapon(playbackTape.metadata.weapon);
@@ -1341,6 +1365,7 @@
         position: replayVector(pickup.mesh && pickup.mesh.position)
       })),
       upgrades: offeredUpgradeIds.slice(),
+      upgradeOptions: currentUpgradeOptions.map(item => item.id),
       rng: { seed: rngState.seed, streams: gameplayStreams }
     };
   }
