@@ -1,0 +1,20 @@
+# Gradle / Android build outputs
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/
+
+# Generated install packages and signing files
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Local development artifacts
+node_modules/
+*.log
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
