@@ -456,6 +456,7 @@ class Enemy {
       if (stagger.interrupted) {
         const interruptedAttack = this.attackKind;
         this._enterRecover(0.46, Math.max(this.attackCooldown, this.isBoss ? 0.85 : 0.55));
+        if (this.type === 'drone' || this.isBoss) this.fireTimer = Math.max(this.fireTimer, this.fireRate * 0.85);
         this._emitCombatEvent('enemy:staggered', { interruptedAttack: interruptedAttack, damage: Number(amount.toFixed(3)) });
       }
     }
@@ -507,6 +508,7 @@ class Enemy {
   die() {
     if (!this.alive) return;
     this.alive = false;
+    this._hideTelegraph();
     this._clearProjectiles();
     this.deathT = 0.45;
     this._playAssetAnimation('TurnOff');
