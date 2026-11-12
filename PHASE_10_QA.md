@@ -61,7 +61,7 @@ window.__SKYWARD__.replay.status();
 
 A clean replay should report `divergences: 0`. To preserve evidence, save the exported tape and the final status together with the device/browser details.
 
-Replay v1 tapes remain importable. New recordings use v2.
+Replay v1 tapes remain importable at the schema level. Because v1 did not record touch input, platform lifecycle transitions or Endless upgrade selections, those historical actions cannot be reconstructed. New recordings use v2.
 
 ## Automated checks
 
