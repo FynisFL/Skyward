@@ -5,8 +5,8 @@
 
 (function () {
   const rng = window.SkywardRNG, events = window.SkywardEvents, replay = window.SkywardReplay;
-  const performanceTools = window.SkywardPerformance;
-  if (!rng || !events || !replay || !performanceTools) throw new Error('[Skyward] Runtime modules failed to load');
+  const performanceTools = window.SkywardPerformance, benchmarkTools = window.SkywardBenchmark;
+  if (!rng || !events || !replay || !performanceTools || !benchmarkTools) throw new Error('[Skyward] Runtime modules failed to load');
   const configuredSeed = rng.getConfiguredSeed();
   let activeRunSeed = rng.reset(configuredSeed === null ? rng.createSeed() : configuredSeed);
   const canvas = document.getElementById('game-canvas');
@@ -533,15 +533,18 @@
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      benchmarkRecorder.stop('document-hidden');
       releaseAllInputs();
       if (G.state === 'playing') pauseGame();
     }
   });
   window.addEventListener('pagehide', () => {
+    benchmarkRecorder.stop('pagehide');
     releaseAllInputs();
     if (G.state === 'playing') pauseGame();
   });
   window.addEventListener('skyward-native-pause', () => {
+    benchmarkRecorder.stop('android-native-pause');
     releaseAllInputs();
     if (G.state === 'playing') pauseGame();
   });
@@ -555,6 +558,7 @@
   // Khôi phục WebGL context trên Android; pause ngay khi GPU reset.
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    benchmarkRecorder.stop('webgl-context-lost');
     releaseAllInputs();
     if (G.state === 'playing') pauseGame();
   });
@@ -1174,6 +1178,7 @@
     replay.endFrame();
     renderer.render(scene, camera);
     updateDebug(perfDt);
+    benchmarkRecorder.sample(getPerformanceSnapshot, Date.now());
   }
 
   // ---------- khởi động ----------
@@ -1226,6 +1231,7 @@
   const PERF_SAMPLE_LIMIT = 600;
   let perfTimer = 0;
   let perfSnapshot = { p50: 0, p95: 0, p99: 0, max: 0, samples: 0 };
+  const benchmarkRecorder = benchmarkTools.createRecorder({ sampleIntervalMs: 1000, maxSamples: 1800 });
   function percentile(sorted, p) {
     if (!sorted.length) return 0;
     const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1));
@@ -1237,6 +1243,7 @@
     return {
       p50: perfSnapshot.p50, p95: perfSnapshot.p95, p99: perfSnapshot.p99,
       max: perfSnapshot.max, samples: perfSnapshot.samples,
+      fps: perfSnapshot.p50 > 0 ? 1000 / perfSnapshot.p50 : 0,
       drawCalls: info.render.calls, triangles: info.render.triangles,
       geometries: info.memory.geometries, textures: info.memory.textures,
       particles: particles.activeCount + dustParticles.activeCount,
@@ -1304,12 +1311,36 @@
     dbgAccum = 0; dbgFrames = 0; dbgMax = 0;
   }
 
+  function getBenchmarkMetadata() {
+    const viewport = getViewportSize();
+    return {
+      userAgent: navigator.userAgent || '',
+      platform: navigator.platform || '',
+      viewport: { width: Math.round(viewport.width), height: Math.round(viewport.height) },
+      devicePixelRatio: window.devicePixelRatio || 1,
+      touchCapable: !!touchCapable,
+      quality: settings.quality,
+      mission: G.mission.id,
+      gameState: G.state,
+      runSeed: activeRunSeed
+    };
+  }
+  const benchmarkApi = Object.freeze({
+    start: (metadata) => benchmarkRecorder.start(Object.assign(getBenchmarkMetadata(), metadata || {})),
+    stop: (reason) => benchmarkRecorder.stop(reason || 'manual'),
+    status: () => benchmarkRecorder.status(),
+    report: () => benchmarkRecorder.report(),
+    export: () => benchmarkRecorder.exportJSON(),
+    reset: () => benchmarkRecorder.reset()
+  });
+
   // Read-only diagnostic surface for automated QA and browser-console inspection.
   window.__SKYWARD__ = {
     G: G, player: player, weapons: weapons, waves: waves, world: world,
     ui: ui, vfx: vfx, tex: Tex, renderer: renderer,
     rng: rng, events: events, replay: replay, runSeed: () => activeRunSeed,
-    start: startRound, menu: toMenu, playReplay: playReplay, getPerformanceSnapshot: getPerformanceSnapshot
+    start: startRound, menu: toMenu, playReplay: playReplay,
+    getPerformanceSnapshot: getPerformanceSnapshot, benchmark: benchmarkApi
   };
 
   boot();
