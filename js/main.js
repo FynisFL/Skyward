@@ -5,7 +5,8 @@
 
 (function () {
   const rng = window.SkywardRNG, events = window.SkywardEvents, replay = window.SkywardReplay;
-  if (!rng || !events || !replay) throw new Error('[Skyward] Phase 7 runtime modules failed to load');
+  const performanceTools = window.SkywardPerformance;
+  if (!rng || !events || !replay || !performanceTools) throw new Error('[Skyward] Runtime modules failed to load');
   const configuredSeed = rng.getConfiguredSeed();
   let activeRunSeed = rng.reset(configuredSeed === null ? rng.createSeed() : configuredSeed);
   const canvas = document.getElementById('game-canvas');
@@ -66,9 +67,33 @@
   function missionUnlocked(m) { return progression.level >= (m.unlockLevel || 1); }
 
   // ---------- renderer / scene ----------
-  const qualityScale = settings.quality === 'low' ? 1 : settings.quality === 'high' ? 2 : 1.5;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualityScale));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  function getViewportSize() {
+    const viewport = window.visualViewport;
+    return {
+      width: Math.max(1, viewport ? viewport.width : window.innerWidth),
+      height: Math.max(1, viewport ? viewport.height : window.innerHeight)
+    };
+  }
+  function getRendererProfile() {
+    const viewport = getViewportSize();
+    return performanceTools.getDeviceProfile({
+      quality: settings.quality,
+      dpr: window.devicePixelRatio || 1,
+      touchCapable: touchCapable,
+      width: viewport.width,
+      height: viewport.height,
+      deviceMemory: navigator.deviceMemory,
+      hardwareConcurrency: navigator.hardwareConcurrency
+    });
+  }
+  let rendererProfile = getRendererProfile();
+  const adaptiveResolution = performanceTools.createAdaptiveResolution({
+    maxScale: rendererProfile.maxScale,
+    minScale: rendererProfile.minScale
+  });
+  const initialViewport = getViewportSize();
+  renderer.setPixelRatio(adaptiveResolution.snapshot().scale);
+  renderer.setSize(initialViewport.width, initialViewport.height);
   renderer.outputEncoding = THREE.sRGBEncoding;
   // Tone mapping kiểu điện ảnh, giữ chi tiết vùng sáng của vật liệu PBR.
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -84,7 +109,7 @@
   });
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1200);
+  const camera = new THREE.PerspectiveCamera(75, initialViewport.width / initialViewport.height, 0.1, 1200);
 
   const __w0 = performance.now();
   const world = World.create(scene, settings.quality);
@@ -521,7 +546,7 @@
     if (G.state === 'playing') pauseGame();
   });
   window.addEventListener('skyward-native-resume', () => {
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    resizeGameRenderer();
   });
   window.addEventListener('skyward-native-back', () => {
     if (G.state === 'playing') pauseGame();
@@ -535,11 +560,28 @@
   });
   canvas.addEventListener('webglcontextrestored', () => { location.reload(); });
 
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+  function resizeGameRenderer() {
+    const viewport = getViewportSize();
+    const nextProfile = getRendererProfile();
+    const current = adaptiveResolution.snapshot();
+    if (Math.abs(nextProfile.maxScale - current.maxScale) > 0.001 ||
+        Math.abs(nextProfile.minScale - current.minScale) > 0.001) {
+      adaptiveResolution.setMaxScale(nextProfile.maxScale, nextProfile.minScale);
+    }
+    rendererProfile = nextProfile;
+    const resolution = adaptiveResolution.snapshot();
+    if (Math.abs(resolution.scale - current.scale) > 0.001) {
+      renderer.setPixelRatio(resolution.scale);
+    }
+    camera.aspect = viewport.width / viewport.height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    renderer.setSize(viewport.width, viewport.height);
+  }
+  window.addEventListener('resize', resizeGameRenderer, { passive: true });
+  window.addEventListener('orientationchange', resizeGameRenderer, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', resizeGameRenderer, { passive: true });
+  }
 
   // ---------- mobile / touch input ----------
   const touchControls = document.getElementById('touch-controls');
@@ -1117,6 +1159,13 @@
     let frameDt = (now - last) / 1000;
     last = now;
     if (!(frameDt > 0)) frameDt = 0.016;
+    if (G.state === 'playing') {
+      const previousScale = adaptiveResolution.snapshot().scale;
+      const resolution = adaptiveResolution.update(frameDt);
+      if (Math.abs(resolution.scale - previousScale) > 0.001) {
+        renderer.setPixelRatio(resolution.scale);
+      }
+    }
     const perfDt = frameDt;
     let dt = Math.min(frameDt, 0.06);
     if (replaying && replayFrame) dt = replayFrame.dt;
@@ -1184,6 +1233,7 @@
   }
   function getPerformanceSnapshot() {
     const info = renderer.info;
+    const resolution = adaptiveResolution.snapshot();
     return {
       p50: perfSnapshot.p50, p95: perfSnapshot.p95, p99: perfSnapshot.p99,
       max: perfSnapshot.max, samples: perfSnapshot.samples,
@@ -1191,6 +1241,9 @@
       geometries: info.memory.geometries, textures: info.memory.textures,
       particles: particles.activeCount + dustParticles.activeCount,
       decals: vfx.decals.activeCount, enemies: waves.aliveCount(),
+      renderScale: resolution.scale, renderScaleMax: resolution.maxScale,
+      renderScaleMin: resolution.minScale, adaptiveFps: resolution.lastFps,
+      resolutionDownshifts: resolution.downshifts, resolutionUpshifts: resolution.upshifts,
       mission: G.mission.id, state: G.state, wave: G.wave
     };
   }
@@ -1245,6 +1298,8 @@
       'particles  ' + particles.activeCount + '+' + dustParticles.activeCount + '<br>' +
       'decals     ' + vfx.decals.activeCount + '/' + vfx.decals.max + '<br>' +
       'enemies    ' + waves.aliveCount() + '<br>' +
+      'render     ' + adaptiveResolution.snapshot().scale.toFixed(2) + ' / ' + adaptiveResolution.snapshot().maxScale.toFixed(2) + '<br>' +
+      'adaptive   ' + adaptiveResolution.snapshot().lastFps.toFixed(1) + ' FPS<br>' +
       'mission    ' + G.mission.id;
     dbgAccum = 0; dbgFrames = 0; dbgMax = 0;
   }
