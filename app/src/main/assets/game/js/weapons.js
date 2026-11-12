@@ -284,40 +284,29 @@ class WeaponSystem {
     let hits = this.raycaster.intersectObjects(hitMeshes, false);
     const whits = this.raycaster.intersectObjects(worldMeshes, false);
 
-    // Animated glTF meshes can have stale rest-pose bounds in Three.js r128.
-    // Only when no real enemy mesh was hit, fall back to each enemy's logical combat sphere.
-    const hasEnemyMeshHit = hits.some(hit => hit.object && hit.object.userData &&
-      hit.object.userData.enemy && hit.object.userData.enemy.alive);
-    if (!hasEnemyMeshHit && this.getEnemies && window.SkywardCombatAI &&
-        typeof window.SkywardCombatAI.raySphereDistance === 'function') {
-      const fallbackHits = [];
-      const enemies = this.getEnemies() || [];
-      enemies.forEach(enemy => {
-        if (!enemy || !enemy.alive || enemy.spawnT > 0 || !enemy.group) return;
-        const center = enemy.group.position;
-        const radius = enemy.isBoss
-          ? Math.max(1.35, enemy.radius * 0.78)
-          : Math.max(0.72, enemy.radius * 1.12);
-        const distance = window.SkywardCombatAI.raySphereDistance(
-          origin.x, origin.y, origin.z,
-          dir.x, dir.y, dir.z,
-          center.x, center.y, center.z,
-          radius, d.range
-        );
-        if (distance === null) return;
-        fallbackHits.push({
-          distance: distance,
-          point: origin.clone().addScaledVector(dir, distance),
+    // Evaluate the proxy independently for each enemy. A mesh hit on a farther
+    // enemy must never suppress the fallback for a nearer enemy whose animated
+    // mesh raycast missed. Real mesh hits remain authoritative for that enemy.
+    if (this.getEnemies && window.SkywardCombatAI &&
+        typeof window.SkywardCombatAI.getEnemyProxyCandidates === 'function') {
+      const candidates = window.SkywardCombatAI.getEnemyProxyCandidates(
+        this.getEnemies(),
+        hits,
+        { origin: origin, direction: dir },
+        d.range
+      );
+      candidates.forEach(candidate => {
+        hits.push({
+          distance: candidate.distance,
+          point: origin.clone().addScaledVector(dir, candidate.distance),
           face: null,
           object: {
-            userData: { enemy: enemy, hitProxy: true, weakpoint: false },
+            userData: { enemy: candidate.enemy, hitProxy: true, weakpoint: false },
             matrixWorld: new THREE.Matrix4()
           }
         });
       });
-      if (fallbackHits.length) {
-        hits = hits.concat(fallbackHits).sort((a, b) => a.distance - b.distance);
-      }
+      hits.sort((a, b) => a.distance - b.distance);
     }
 
     let end = origin.clone().add(dir.clone().multiplyScalar(d.range));
