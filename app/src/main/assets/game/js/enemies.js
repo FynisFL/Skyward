@@ -294,7 +294,7 @@ class Enemy {
       this.telegraphLine.visible = this.attackState === 'telegraph';
     }
     if (this.telegraphMarker) {
-      this.telegraphMarker.position.set(this.attackTarget.x, 0.1, this.attackTarget.z);
+      this.telegraphMarker.position.set(this.attackTarget.x, this.attackTarget.y + 0.1, this.attackTarget.z);
       const pulse = 0.94 + Math.sin(this.attackTimer * 13) * 0.045;
       this.telegraphMarker.scale.setScalar(pulse);
       this.telegraphMarker.material.opacity = 0.38 + Math.sin(this.attackTimer * 16) * 0.08;
@@ -356,7 +356,10 @@ class Enemy {
           const hit = window.SkywardCombatAI.isInsideRadialAttack(
             this.attackTarget.x, this.attackTarget.z,
             player.pos.x, player.pos.z,
-            profile.slamRadius
+            profile.slamRadius,
+            this.attackTarget.y,
+            player.pos.y - player.eyeHeight,
+            profile.slamHeightTolerance
           );
           this._emitCombatEvent('enemy:attack', { attack: 'ground-slam', hit: hit });
           if (hit && typeof onPlayerHit === 'function') {
