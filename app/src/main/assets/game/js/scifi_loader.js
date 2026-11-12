@@ -307,14 +307,39 @@
   function createEnemy(name, enemy, targetHeight) {
     try {
       const instance = makeInstance(name, true);
-      if (!instance) return null;
+      if (!instance || !instance.root) return null;
+
+      // Never replace the procedural enemy with an empty or degenerate glTF
+      // hierarchy. Returning null deliberately keeps the known-good fallback
+      // visible in Enemy's constructor.
+      let meshCount = 0;
+      let invalidMesh = false;
+      instance.root.traverse(o => {
+        if (!o.isMesh) return;
+        meshCount++;
+        const position = o.geometry && o.geometry.attributes && o.geometry.attributes.position;
+        if (!position || position.count < 3) invalidMesh = true;
+      });
+      if (!meshCount || invalidMesh) {
+        console.warn('[Skyward] Rejecting incomplete enemy glTF; using procedural fallback:', name);
+        return null;
+      }
+
       markEnemyMeshes(instance.root, enemy);
+      instance.root.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(instance.root);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const h = Math.max(0.001, size.y);
-      const desired = targetHeight || 2;
-      const scale = desired / h;
+      const values = [size.x, size.y, size.z, center.x, center.y, center.z];
+      if (box.isEmpty() || !values.every(Number.isFinite) || size.y < 0.001 ||
+          size.x < 0.001 || size.z < 0.001) {
+        console.warn('[Skyward] Rejecting degenerate enemy glTF bounds; using procedural fallback:', name);
+        return null;
+      }
+
+      const desired = Number.isFinite(targetHeight) && targetHeight > 0 ? targetHeight : 2;
+      const scale = desired / size.y;
+      if (!Number.isFinite(scale) || scale <= 0) return null;
       instance.root.scale.setScalar(scale);
       instance.root.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
       instance.root.updateMatrixWorld(true);
