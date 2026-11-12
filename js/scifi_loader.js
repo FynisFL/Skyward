@@ -297,6 +297,9 @@
       if (!o.isMesh) return;
       o.userData.enemy = enemy;
       o.userData.hitTarget = true;
+      // Animated/skinned enemy vertices move outside their rest-pose geometry bounds.
+      // Disable frustum culling so the visual model does not disappear during animation.
+      o.frustumCulled = false;
       o.castShadow = true;
       o.receiveShadow = true;
     });
