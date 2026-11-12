@@ -499,6 +499,8 @@
       pauseGame(data.source || 'replay');
     } else if (action === 'game-resume') {
       resumeGame(data.source || 'replay');
+    } else if (action === 'run-abandon') {
+      toMenu();
     }
   }
 
@@ -1044,7 +1046,9 @@
 
   function toMenu() {
     if (G.state === 'playing' || G.state === 'paused') {
-      replay.finish({ abandoned: true, mission: G.mission.id, wave: G.wave });
+      const abandoned = { abandoned: true, mission: G.mission.id, wave: G.wave };
+      recordInput('run-abandon', abandoned);
+      replay.finish(abandoned);
       events.emit('run:abandoned', { mission: G.mission.id, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
     }
     G.state = 'menu';
