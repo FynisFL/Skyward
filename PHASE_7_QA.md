@@ -18,7 +18,7 @@ window.__SKYWARD__.playReplay(tape);
 ```
 The tape stores frame deltas and keyboard/mouse transitions. Playback uses the recorded simulation deltas and reports event-trace divergences.
 
-**Current limitation:** replay captures keyboard and mouse input only. Touch joystick, touch-look and mobile action buttons are not recorded and are not claimed to be deterministic yet.
+**Current limitation:** replay captures keyboard and mouse input only. Touch joystick, touch-look, mobile action buttons, browser blur/visibility changes and pause caused by pointer-lock loss are not recorded. Runs containing those platform-driven inputs are not claimed to be replay-complete.
 
 ## Automated checks
 Run from the repository root:

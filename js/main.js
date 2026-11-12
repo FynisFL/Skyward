@@ -463,7 +463,7 @@
 
   window.addEventListener('mouseup', (e) => {
     if (replay.isPlaying()) return;
-    if (G.state === 'playing') recordInput('mouse-up', { button: e.button });
+    if (replay.isRecording()) recordInput('mouse-up', { button: e.button });
     if (e.button === 0) { triggerDown = false; dragging = false; }
     else if (e.button === 2) weapons.setAiming(false);
   });
@@ -921,8 +921,8 @@
 
   function toMenu() {
     if (G.state === 'playing' || G.state === 'paused') {
-      events.emit('run:abandoned', { mission: G.mission.id, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
       replay.finish({ abandoned: true, mission: G.mission.id, wave: G.wave });
+      events.emit('run:abandoned', { mission: G.mission.id, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
     }
     G.state = 'menu';
     triggerDown = false; dragging = false; player.keys.clear();

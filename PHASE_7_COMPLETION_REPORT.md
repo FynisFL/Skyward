@@ -24,7 +24,7 @@
 | Android WebView tests | NOT RUN | target device required |
 
 ## Known limitations
-- Replay currently captures keyboard and mouse only. Touch joystick/look/action input remains out of scope for this implementation.
+- Replay currently captures keyboard and mouse only. Touch joystick/look/action input, browser blur/visibility changes and pointer-lock-loss pause events are not recorded; runs containing these inputs are not claimed to be replay-complete.
 - Frame-step playback uses recorded delta time and seeded random streams. Pixel-identical rendering across GPUs/browsers is not a target.
 - Browser playback and Android device lifecycle still require manual validation.
 - Classic-script loading, Three.js r128 and offline runtime constraints are retained; no runtime dependency was added.
