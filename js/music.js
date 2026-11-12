@@ -159,7 +159,7 @@ const Music = (() => {
     if (!_noise || _noise.length < len) {
       const b = ac.createBuffer(1, Math.max(len, ac.sampleRate), ac.sampleRate);
       const d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      for (let i = 0; i < d.length; i++) d[i] = SkywardRNG.random('audio') * 2 - 1;
       _noise = b;
     }
     const out = ac.createBuffer(1, len, ac.sampleRate);

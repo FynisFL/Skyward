@@ -4,6 +4,11 @@
    ============================================================ */
 
 (function () {
+  const rng = window.SkywardRNG, events = window.SkywardEvents, replay = window.SkywardReplay;
+  if (!rng || !events || !replay) throw new Error('[Skyward] Phase 7 runtime modules failed to load');
+  const configuredSeed = rng.getConfiguredSeed();
+  let activeRunSeed = configuredSeed === null ? rng.createSeed() : configuredSeed;
+  rng.reset(activeRunSeed);
   const canvas = document.getElementById('game-canvas');
 
   // Chỉ bật touch UI khi thiết bị nhập chính là cảm ứng; laptop touchscreen vẫn giữ chuột + bàn phím.
@@ -156,18 +161,20 @@
     getEnemies: () => waves.enemies,
     getHitMeshes: () => waves.hitMeshes(),
     getWorldMeshes: getVisibleWorldMeshes,
-    onShot: () => { G.shotsFired++; },
+    onShot: () => { G.shotsFired++; events.emit('weapon:fire', { weapon: weapons.current, shotsFired: G.shotsFired }); },
     onHit: (e, dmg, killed, source) => {
       // Accuracy chỉ đo phát bắn từ vũ khí; kỹ năng diện rộng không phải viên đạn.
       if (source === 'firearm') {
         G.shotsHit++;
         G.score += 10;
       }
+      events.emit('damage:dealt', { target: e.type, damage: Number(dmg.toFixed(3)), killed: !!killed, source: source || 'unknown' });
       ui.hitmarker(killed);
       ui.showDamageNumber(camera, e, dmg, killed);
     },
     onKill: (e) => {
       G.kills++;
+      events.emit('enemy:death', { enemyType: e.type, boss: !!e.isBoss, kills: G.kills });
       if (G.mission.mods && G.mission.mods.endless) {
         G.combo++; G.comboTimer = 4.2;
         G.multiplier = Math.min(3, 1 + Math.floor(Math.max(0, G.combo - 1) / 4) * 0.25);
@@ -177,7 +184,7 @@
       ui.hitmarker(true);
       ui.killfeed((e.isBoss ? '<b>COMMANDER ELIMINATED</b> ' : 'Hạ <b>' + e.type.toUpperCase() + '</b> ') + '+' + points);
       if (player.mods.vampiric) player.heal(player.mods.vampiric);
-      if (G.mission.mods && G.mission.mods.endless && Math.random() < (e.isBoss ? 1 : 0.24)) spawnPickup(e.group.position, e.isBoss ? 'both' : (Math.random() < 0.5 ? 'health' : 'ammo'));
+      if (G.mission.mods && G.mission.mods.endless && SkywardRNG.random('gameplay') < (e.isBoss ? 1 : 0.24)) spawnPickup(e.group.position, e.isBoss ? 'both' : (SkywardRNG.random('gameplay') < 0.5 ? 'health' : 'ammo'));
     }
   });
   G.weapons = weapons;
@@ -186,11 +193,13 @@
   const waves = new WaveManager(scene, particles, Sound, {
     onWaveStart: (n, total) => {
       G.wave = n;
+      events.emit('wave:started', { wave: n, total: total === '∞' ? null : total });
       G.totalWaves = total === '∞' ? Infinity : total;
       ui.waveBanner('ĐỢT ' + n, total === '∞' ? 'ENDLESS PROTOCOL' : total + ' ĐỢT');
       ui.killfeed('Đợt <b>' + n + '</b> bắt đầu');
     },
     onWaveClear: (n, total) => {
+      events.emit('wave:completed', { wave: n, total: total === '∞' ? null : total });
       G.score += 250;
       ui.waveBanner('ĐỢT ' + n + ' XONG', '+250 ĐIỂM');
       ui.killfeed('Dọn sạch đợt <b>' + n + '</b> +250');
@@ -199,10 +208,11 @@
       const finalWave = !endless && n >= (G.mission.mods.waveCount || 3);
       if (endless || (!finalWave && n % 2 === 0)) presentUpgradeChoice();
     },
-    onAllClear: () => { endRound(true); },
+    onAllClear: () => { events.emit('mission:completed', { mission: G.mission.id, wave: G.wave }); endRound(true); },
     onPlayerHit: (dmg, pos) => {
       if (G.state !== 'playing' || player.dead) return;
       player.damage(dmg);
+      events.emit('damage:taken', { damage: Number(dmg.toFixed(3)), health: player.health });
       ui.damageDirection(pos, player);
       ui.damageFlash();
       Sound.hurt();
@@ -299,7 +309,7 @@
     }
     if (!mesh) mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.48, 0), pickupMaterials[type]);
     mesh.position.copy(position); mesh.position.y = Math.max(0.8, mesh.position.y + 0.8);
-    mesh.userData.baseY = mesh.position.y; mesh.userData.phase = Math.random() * Math.PI * 2;
+    mesh.userData.baseY = mesh.position.y; mesh.userData.phase = SkywardRNG.random('cosmetic') * Math.PI * 2;
     scene.add(mesh); pickups.push({ mesh, type, life: 18 });
   }
   function clearPickups() {
@@ -346,7 +356,7 @@
     const picks = [];
     while (picks.length < 3 && pool.length) {
       const total = pool.reduce((sum,x) => sum + weights[x.rarity],0);
-      let roll = Math.random()*total, chosen = pool[0];
+      let roll = SkywardRNG.random('gameplay')*total, chosen = pool[0];
       for (const item of pool) { roll -= weights[item.rarity]; if (roll <= 0) { chosen=item; break; } }
       picks.push(chosen); pool.splice(pool.indexOf(chosen),1);
     }
@@ -394,6 +404,34 @@
   let triggerDown = false;
   let dragging = false;
   let locked = false;
+  function recordInput(action, data) { if (replay.isRecording()) replay.recordInput(action, data || {}); }
+  function applyReplayInput(input) {
+    const data = input.data || {};
+    if (input.action === 'key-down') {
+      const code = data.code; if (!code) return; player.keys.add(code);
+      if (code === 'KeyR') weapons.startReload();
+      else if (code === 'KeyX') weapons.inspect();
+      else if (code === 'KeyQ') { if (player.tryDash()) { Sound.dash(); particles.burst(player.pos.clone(), { count: 16, color: [0.5, 0.8, 1], speed: 5, life: 0.4, gravity: 1 }); } }
+      else if (code === 'KeyE') weapons.throwGrenade();
+      else if (code === 'KeyF') weapons.callSuper();
+      else if (code === 'Digit1') weapons.switchWeapon('auto');
+      else if (code === 'Digit2') weapons.switchWeapon('handcannon');
+      else if (code === 'Digit3') weapons.switchWeapon('scout');
+      else if (code === 'Space' && player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); }
+    } else if (input.action === 'key-up') { if (data.code) player.keys.delete(data.code); }
+    else if (input.action === 'look') player.look(Number(data.dx) || 0, Number(data.dy) || 0);
+    else if (input.action === 'mouse-down') { if (data.button === 0) { triggerDown = true; dragging = true; } else if (data.button === 2) weapons.setAiming(true); }
+    else if (input.action === 'mouse-up') { if (data.button === 0) { triggerDown = false; dragging = false; } else if (data.button === 2) weapons.setAiming(false); }
+  }
+  function playReplay(input) {
+    const tape = replay.load(input), meta = tape.metadata || {};
+    if (!MISSIONS.some(item => item.id === meta.mission)) throw new Error('Replay references an unknown mission');
+    if (!CLASSES.some(item => item.id === meta.class)) throw new Error('Replay references an unknown class');
+    if (G.state !== 'menu') toMenu();
+    G.mission = MISSIONS.find(item => item.id === meta.mission);
+    G.cls = CLASSES.find(item => item.id === meta.class);
+    startRound(); return replay.status();
+  }
 
   document.addEventListener('pointerlockchange', () => {
     locked = document.pointerLockElement === canvas;
@@ -402,16 +440,17 @@
   });
 
   document.addEventListener('mousemove', (e) => {
-    if (G.state !== 'playing') return;
+    if (G.state !== 'playing' || replay.isPlaying()) return;
     if (locked || dragging) {
       const dx = e.movementX || 0;
       const dy = e.movementY || 0;
-      if (dx || dy) player.look(dx, dy);
+      if (dx || dy) { recordInput('look', { dx, dy }); player.look(dx, dy); }
     }
   });
 
   canvas.addEventListener('mousedown', (e) => {
-    if (G.state !== 'playing') return;
+    if (G.state !== 'playing' || replay.isPlaying()) return;
+    recordInput('mouse-down', { button: e.button });
     Sound.unlock();
     if (e.button === 0) {
       triggerDown = true;
@@ -423,6 +462,8 @@
   });
 
   window.addEventListener('mouseup', (e) => {
+    if (replay.isPlaying()) return;
+    if (G.state === 'playing') recordInput('mouse-up', { button: e.button });
     if (e.button === 0) { triggerDown = false; dragging = false; }
     else if (e.button === 2) weapons.setAiming(false);
   });
@@ -430,9 +471,11 @@
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   window.addEventListener('keydown', (e) => {
+    if (replay.isPlaying()) return;
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
 
     if (G.state === 'playing') {
+      if (!e.repeat && e.code !== 'KeyP') recordInput('key-down', { code: e.code });
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].indexOf(e.code) >= 0) e.preventDefault();
       if (!e.repeat) {
         if (e.code === 'KeyR') weapons.startReload();
@@ -453,6 +496,8 @@
   });
 
   window.addEventListener('keyup', (e) => {
+    if (replay.isPlaying()) return;
+    if (G.state === 'playing') recordInput('key-up', { code: e.code });
     player.keys.delete(e.code);
   });
 
@@ -804,6 +849,21 @@
 
   // ---------- máy trạng thái ----------
   function startRound() {
+    const playbackTape = replay.isReady() ? replay.getTape() : null;
+    if (playbackTape) {
+      const meta = playbackTape.metadata || {};
+      const replayMission = MISSIONS.find(item => item.id === meta.mission);
+      const replayClass = CLASSES.find(item => item.id === meta.class);
+      if (replayMission) G.mission = replayMission;
+      if (replayClass) G.cls = replayClass;
+      activeRunSeed = playbackTape.seed;
+      rng.reset(activeRunSeed);
+      replay.startPlayback();
+    } else {
+      activeRunSeed = configuredSeed === null ? rng.createSeed() : configuredSeed;
+      rng.reset(activeRunSeed);
+      replay.start(activeRunSeed, { mission: G.mission.id, class: G.cls.id, weapon: weapons.current, input: 'keyboard-mouse', version: 1 });
+    }
     if (hudSetupMode) { hudSetupMode = false; hudSetupBar.classList.add('hidden'); }
     Sound.unlock();
     Music.init();
@@ -815,6 +875,7 @@
     waves.clearAll(); clearPickups(); ui.hideUpgrade();
     world.setMood(G.mission.mood); if (world.setMap) world.setMap(G.mission.id);
     G.state = 'playing';
+    events.emit('run:started', { seed: activeRunSeed, mission: G.mission.id, class: G.cls.id, weapon: weapons.current });
     G.score = 0; G.kills = 0;
     G.shotsFired = 0; G.shotsHit = 0;
     G.wave = 0; G.totalWaves = G.mission.mods.endless ? Infinity : (G.mission.mods.waveCount || 3); G.elapsed = 0; G.timeLeft = 0;
@@ -843,6 +904,7 @@
   function pauseGame() {
     if (G.state !== 'playing') return;
     G.state = 'paused';
+    events.emit('game:paused', { mission: G.mission.id, wave: G.wave });
     releaseAllInputs();
     ui.show('pause', true);
     if (document.exitPointerLock) document.exitPointerLock();
@@ -852,12 +914,17 @@
   function resumeGame() {
     if (G.state !== 'paused') return;
     G.state = 'playing';
+    events.emit('game:resumed', { mission: G.mission.id, wave: G.wave });
     ui.hideAll();
     lockHint();
     if (!touchCapable) canvas.requestPointerLock && canvas.requestPointerLock();
   }
 
   function toMenu() {
+    if (G.state === 'playing' || G.state === 'paused') {
+      events.emit('run:abandoned', { mission: G.mission.id, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
+      replay.finish({ abandoned: true, mission: G.mission.id, wave: G.wave });
+    }
     G.state = 'menu';
     triggerDown = false; dragging = false; player.keys.clear();
     player.touchMove.x = 0; player.touchMove.y = 0; weapons.setAiming(false);
@@ -877,6 +944,8 @@
     if (G.state !== 'playing') return;
     G.victory = victory;
     G.state = 'over';
+    events.emit('run:completed', { victory: !!victory, mission: G.mission.id, score: G.score, kills: G.kills, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
+    replay.finish({ victory: !!victory, mission: G.mission.id, score: G.score, kills: G.kills, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
     triggerDown = false; dragging = false; player.keys.clear();
     player.touchMove.x = 0; player.touchMove.y = 0; weapons.setAiming(false);
     Music.setScene('menu');
@@ -936,26 +1005,26 @@
     smokeTimer -= dt;
     if (smokeTimer <= 0) {
       smokeTimer = 0.22;
-      const base = Math.random() < 0.5 ? wreckSmokeA : wreckSmokeB;
-      dustPos.set(base.x + (Math.random() - 0.5) * 0.6, base.y, base.z + (Math.random() - 0.5) * 0.6);
+      const base = SkywardRNG.random('vfx') < 0.5 ? wreckSmokeA : wreckSmokeB;
+      dustPos.set(base.x + (SkywardRNG.random('vfx') - 0.5) * 0.6, base.y, base.z + (SkywardRNG.random('vfx') - 0.5) * 0.6);
       vfx.smoke(dustPos, {
-        size: 1.5 + Math.random() * 0.8, grow: 1.9, rise: 1.3,
-        life: 2.6 + Math.random(), color: 0x3c3a37, opacity: 0.26
+        size: 1.5 + SkywardRNG.random('vfx') * 0.8, grow: 1.9, rise: 1.3,
+        life: 2.6 + SkywardRNG.random('vfx'), color: 0x3c3a37, opacity: 0.26
       });
     }
     // bụi trôi trên sân
     dustTimer -= dt;
     if (dustTimer <= 0) {
       dustTimer = 0.09;
-      const a = Math.random() * Math.PI * 2;
-      const r = 6 + Math.random() * 44;
-      dustPos.set(Math.cos(a) * r, 0.3 + Math.random() * 1.6, Math.sin(a) * r);
-      dustVel.set(2.2 + Math.random() * 2.4, 0.15 + Math.random() * 0.3, (Math.random() - 0.5) * 1.2);
+      const a = SkywardRNG.random('vfx') * Math.PI * 2;
+      const r = 6 + SkywardRNG.random('vfx') * 44;
+      dustPos.set(Math.cos(a) * r, 0.3 + SkywardRNG.random('vfx') * 1.6, Math.sin(a) * r);
+      dustVel.set(2.2 + SkywardRNG.random('vfx') * 2.4, 0.15 + SkywardRNG.random('vfx') * 0.3, (SkywardRNG.random('vfx') - 0.5) * 1.2);
       dustParticles.spawn(
         dustPos.x, dustPos.y, dustPos.z,
         dustVel.x, dustVel.y, dustVel.z,
         0.42, 0.40, 0.36,
-        1.6 + Math.random(), -0.2
+        1.6 + SkywardRNG.random('vfx'), -0.2
       );
     }
   }
@@ -1033,7 +1102,13 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
-    if (G.state === 'playing' && (pendingLookX !== 0 || pendingLookY !== 0)) {
+    const replaying = replay.isPlaying();
+    if (replaying && G.state === 'playing') {
+      const step = replay.nextFrame();
+      if (!step) { pauseGame(); return; }
+      replay.drainInputsForFrame(step.index).forEach(applyReplayInput);
+    }
+    if (!replaying && G.state === 'playing' && (pendingLookX !== 0 || pendingLookY !== 0)) {
       const dx = pendingLookX, dy = pendingLookY;
       pendingLookX = 0; pendingLookY = 0;
       player.look(dx * 1.12, dy * 1.12);
@@ -1042,8 +1117,11 @@
     last = now;
     if (!(frameDt > 0)) frameDt = 0.016;
     const perfDt = frameDt;
-    const dt = Math.min(frameDt, 0.06);
+    let dt = Math.min(frameDt, 0.06);
+    if (replaying && G.state === 'playing') { const tape = replay.getTape(); const frameIndex = replay.status().playbackFrame - 1; if (tape && frameIndex >= 0) dt = tape.frames[frameIndex]; }
+    if (replay.isRecording()) replay.beginFrame(dt);
     update(dt);
+    replay.endFrame();
     renderer.render(scene, camera);
     updateDebug(perfDt);
   }
@@ -1174,7 +1252,8 @@
   window.__SKYWARD__ = {
     G: G, player: player, weapons: weapons, waves: waves, world: world,
     ui: ui, vfx: vfx, tex: Tex, renderer: renderer,
-    start: startRound, menu: toMenu, getPerformanceSnapshot: getPerformanceSnapshot
+    rng: rng, events: events, replay: replay, runSeed: () => activeRunSeed,
+    start: startRound, menu: toMenu, playReplay: playReplay, getPerformanceSnapshot: getPerformanceSnapshot
   };
 
   boot();
