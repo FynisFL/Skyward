@@ -120,6 +120,27 @@
     return Math.abs(a - b) <= limit;
   }
 
+  function raySphereDistance(originX, originY, originZ, directionX, directionY, directionZ,
+    centerX, centerY, centerZ, radius, maxDistance) {
+    const values = [originX, originY, originZ, directionX, directionY, directionZ,
+      centerX, centerY, centerZ, radius, maxDistance].map(Number);
+    if (!values.every(Number.isFinite) || radius <= 0 || maxDistance < 0) return null;
+    const ox = originX - centerX;
+    const oy = originY - centerY;
+    const oz = originZ - centerZ;
+    const a = directionX * directionX + directionY * directionY + directionZ * directionZ;
+    if (a < 1e-12) return null;
+    const b = 2 * (ox * directionX + oy * directionY + oz * directionZ);
+    const c = ox * ox + oy * oy + oz * oz - radius * radius;
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return null;
+    const root = Math.sqrt(discriminant);
+    const near = (-b - root) / (2 * a);
+    const far = (-b + root) / (2 * a);
+    const distance = near >= 0 ? near : far;
+    return distance >= 0 && distance <= maxDistance ? distance : null;
+  }
+
   function addStagger(current, damage, threshold) {
     const total = Math.max(0, Number(current) || 0) + Math.max(0, Number(damage) || 0);
     const limit = Math.max(1, Number(threshold) || 1);
@@ -148,6 +169,7 @@
     isInChargeWindow: isInChargeWindow,
     isInsideRadialAttack: isInsideRadialAttack,
     isWithinVerticalTolerance: isWithinVerticalTolerance,
+    raySphereDistance: raySphereDistance,
     addStagger: addStagger,
     getMovementIntent: getMovementIntent
   });
