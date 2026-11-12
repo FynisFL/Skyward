@@ -158,11 +158,12 @@ check('Phase 10 Replay v2 supports touch and lifecycle inputs', () => {
   for (const token of ['VERSION = 2', 'MAX_SUPPORTED_VERSION = 2', 'touch-move', 'touch-action-down', 'game-pause', 'game-resume']) {
     assert.ok(replay.includes(token) || main.includes(token), 'Missing Replay v2 contract: ' + token);
   }
-  for (const token of ["recordInput('touch-action-down'", "recordInput('touch-action-up'", "recordInput('touch-move'", "recordInput('game-pause'", "recordInput('game-resume'"]) {
+  for (const token of ["recordInput('touch-action-down'", "recordInput('touch-action-up'", "recordInput('touch-move'", "recordInput('game-pause'", "recordInput('game-resume'", "recordInput('run-abandon'"]) {
     assert.ok(main.includes(token), 'Missing input capture hook: ' + token);
   }
   assert.ok(main.includes("events.emit('replay:checkpoint'"));
   assert.ok(main.includes('getReplayCheckpoint'));
+  assert.ok(main.includes("action === 'run-abandon'"), 'Replay must restore abandon-to-menu transitions');
   assert.ok(main.includes("replayVersion === 1"), 'Legacy v1 key-pause playback must remain supported');
 });
 
