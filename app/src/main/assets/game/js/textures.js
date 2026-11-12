@@ -649,9 +649,9 @@ const Tex = (() => {
       const cx = s / 2, cy = s / 2;
       // vệt bẩn xung quanh
       for (let i = 0; i < 16; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const d = 12 + Math.random() * 34;
-        const r = 4 + Math.random() * 12;
+        const a = SkywardRNG.random('texture') * Math.PI * 2;
+        const d = 12 + SkywardRNG.random('texture') * 34;
+        const r = 4 + SkywardRNG.random('texture') * 12;
         const grd = g.createRadialGradient(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0, cx + Math.cos(a) * d, cy + Math.sin(a) * d, r);
         grd.addColorStop(0, 'rgba(30,26,22,0.35)');
         grd.addColorStop(1, 'rgba(30,26,22,0)');
@@ -669,14 +669,14 @@ const Tex = (() => {
       // nứt tỏa ra
       g.strokeStyle = 'rgba(20,18,16,0.7)';
       for (let i = 0; i < 7; i++) {
-        const a = (i / 7) * Math.PI * 2 + Math.random() * 0.5;
-        g.lineWidth = 0.8 + Math.random() * 1.2;
+        const a = (i / 7) * Math.PI * 2 + SkywardRNG.random('texture') * 0.5;
+        g.lineWidth = 0.8 + SkywardRNG.random('texture') * 1.2;
         g.beginPath();
         g.moveTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14);
-        const mx = cx + Math.cos(a) * (22 + Math.random() * 10);
-        const my = cy + Math.sin(a) * (22 + Math.random() * 10);
+        const mx = cx + Math.cos(a) * (22 + SkywardRNG.random('texture') * 10);
+        const my = cy + Math.sin(a) * (22 + SkywardRNG.random('texture') * 10);
         g.lineTo(mx, my);
-        g.lineTo(cx + Math.cos(a + 0.2) * (32 + Math.random() * 14), cy + Math.sin(a + 0.2) * (32 + Math.random() * 14));
+        g.lineTo(cx + Math.cos(a + 0.2) * (32 + SkywardRNG.random('texture') * 14), cy + Math.sin(a + 0.2) * (32 + SkywardRNG.random('texture') * 14));
         g.stroke();
       }
       return c;
@@ -688,12 +688,12 @@ const Tex = (() => {
       const g = c.getContext('2d');
       const cx = s / 2, cy = s / 2;
       for (let i = 0; i < 26; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const d = Math.random() * 30;
-        const r = 14 + Math.random() * 26;
+        const a = SkywardRNG.random('texture') * Math.PI * 2;
+        const d = SkywardRNG.random('texture') * 30;
+        const r = 14 + SkywardRNG.random('texture') * 26;
         const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d;
         const grd = g.createRadialGradient(x, y, 0, x, y, r);
-        const v = 200 + Math.floor(Math.random() * 40);
+        const v = 200 + Math.floor(SkywardRNG.random('texture') * 40);
         grd.addColorStop(0, 'rgba(' + v + ',' + v + ',' + v + ',0.30)');
         grd.addColorStop(1, 'rgba(' + v + ',' + v + ',' + v + ',0)');
         g.fillStyle = grd;

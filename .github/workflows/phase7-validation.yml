@@ -1,0 +1,32 @@
+name: Phase 7 deterministic validation
+
+on:
+  push:
+    branches: [phase/7-deterministic-foundation]
+  pull_request:
+    branches: [main]
+    paths:
+      - "js/**"
+      - "index.html"
+      - "tools/qa/**"
+      - "PHASE_7_*.md"
+      - ".github/workflows/phase7-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  phase7:
+    name: Phase 7 source and deterministic tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate JavaScript syntax
+        run: find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Run Phase 7 deterministic tests
+        run: node tools/qa/phase7.test.mjs
+      - name: Run repository QA validator
+        run: node tools/qa/validate.mjs

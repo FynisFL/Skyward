@@ -217,6 +217,7 @@ class WeaponSystem {
     const d = this.def(), s = this.ammo();
     if (this.reloading > 0 || s.mag >= d.mag || s.reserve <= 0) return;
     this.reloading = d.reload / Math.max(0.5, this.player.mods.reloadSpeed || 1);
+    if (window.SkywardEvents) window.SkywardEvents.emit('weapon:reload', { weapon: this.current });
     this.reloadDuration = this.reloading;
     this.reloadAnim = 1;
     this.sound.reload();
@@ -243,9 +244,9 @@ class WeaponSystem {
     const d = new THREE.Vector3();
     this.camera.getWorldDirection(d);
     if (spread > 0) {
-      d.x += (Math.random() - 0.5) * spread * 2;
-      d.y += (Math.random() - 0.5) * spread * 2;
-      d.z += (Math.random() - 0.5) * spread * 2;
+      d.x += (SkywardRNG.random('weapon') - 0.5) * spread * 2;
+      d.y += (SkywardRNG.random('weapon') - 0.5) * spread * 2;
+      d.z += (SkywardRNG.random('weapon') - 0.5) * spread * 2;
       d.normalize();
     }
     return d;
@@ -322,7 +323,7 @@ class WeaponSystem {
       right.normalize();
       vfx.shell(mpos, right);
 
-      if (Math.random() < 0.5) {
+      if (SkywardRNG.random('vfx') < 0.5) {
         vfx.smoke(mpos, { size: 0.32, grow: 1.5, rise: 0.5, life: 0.5, color: 0x9a9a96, opacity: 0.22 });
       }
     }
@@ -331,7 +332,7 @@ class WeaponSystem {
     // giật + FOV
     const recoil = d.recoil * (this.aiming ? 0.55 : 1);
     this.player.pitch.rotation.x += recoil;
-    this.player.yaw.rotation.y += (Math.random() - 0.5) * recoil * 0.5;
+    this.player.yaw.rotation.y += (SkywardRNG.random('weapon') - 0.5) * recoil * 0.5;
     this.recoilPitch = Math.min(0.25, this.recoilPitch + recoil * 0.6);
     this.rig.position.z = -0.62 + 0.09;
     this.rig.rotation.x = -recoil * 2.4;
@@ -412,8 +413,8 @@ class WeaponSystem {
     target.y = 0;
 
     for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * Math.PI * 2 + Math.random() * 0.5;
-      const r = i === 0 ? 0 : 3 + Math.random() * 8;
+      const a = (i / 7) * Math.PI * 2 + SkywardRNG.random('weapon') * 0.5;
+      const r = i === 0 ? 0 : 3 + SkywardRNG.random('weapon') * 8;
       this.strikes.push({
         x: target.x + Math.cos(a) * r,
         z: target.z + Math.sin(a) * r,

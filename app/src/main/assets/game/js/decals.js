@@ -40,11 +40,11 @@ class DecalPool {
 
     const m = d.mesh;
     m.visible = true;
-    m.position.copy(point).addScaledVector(normal, 0.015 + Math.random() * 0.01);
+    m.position.copy(point).addScaledVector(normal, 0.015 + SkywardRNG.random('vfx') * 0.01);
     m.lookAt(point.x + normal.x, point.y + normal.y, point.z + normal.z);
-    m.rotateZ(Math.random() * Math.PI * 2);
+    m.rotateZ(SkywardRNG.random('vfx') * Math.PI * 2);
 
-    const s = (o.scale || 0.32) * (0.8 + Math.random() * 0.5);
+    const s = (o.scale || 0.32) * (0.8 + SkywardRNG.random('vfx') * 0.5);
     d.scale = s;
     m.scale.set(s, s, s);
 

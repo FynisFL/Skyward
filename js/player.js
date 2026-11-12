@@ -319,8 +319,8 @@ class Player {
     const bobAmount = hasMoveInput ? Math.min(1, move.length() / 6) : 0;
     const bobY = Math.sin(this.bob) * 0.055 * bobAmount;
     const bobX = Math.cos(this.bob * 0.5) * 0.03 * bobAmount;
-    const shakeX = (Math.random() - 0.5) * this.shake * 0.5;
-    const shakeY = (Math.random() - 0.5) * this.shake * 0.5;
+    const shakeX = (SkywardRNG.random('cosmetic') - 0.5) * this.shake * 0.5;
+    const shakeY = (SkywardRNG.random('cosmetic') - 0.5) * this.shake * 0.5;
 
     this.camera.position.set(bobX + shakeX, bobY - this.landDip + shakeY, 0);
   }

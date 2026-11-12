@@ -152,14 +152,14 @@ class Vfx {
     this._sc = (this._sc + 1) % this._shells.length;
     s.mesh.visible = true;
     s.mesh.position.copy(pos);
-    s.mesh.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    s.mesh.rotation.set(SkywardRNG.random('vfx') * 3, SkywardRNG.random('vfx') * 3, SkywardRNG.random('vfx') * 3);
     s.mesh.scale.set(1, 1, 1);
     s.vel.set(
-      right.x * (1.4 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.7,
-      2.1 + Math.random() * 1.5,
-      right.z * (1.4 + Math.random() * 0.9) + (Math.random() - 0.5) * 0.7
+      right.x * (1.4 + SkywardRNG.random('vfx') * 0.9) + (SkywardRNG.random('vfx') - 0.5) * 0.7,
+      2.1 + SkywardRNG.random('vfx') * 1.5,
+      right.z * (1.4 + SkywardRNG.random('vfx') * 0.9) + (SkywardRNG.random('vfx') - 0.5) * 0.7
     );
-    s.spin.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+    s.spin.set((SkywardRNG.random('vfx') - 0.5) * 20, (SkywardRNG.random('vfx') - 0.5) * 20, (SkywardRNG.random('vfx') - 0.5) * 20);
     s.max = 1.4;
     s.life = s.max;
   }
@@ -171,7 +171,7 @@ class Vfx {
     s.mesh.visible = true;
     s.mesh.position.copy(pos);
     s.mesh.material.color.setHex(o.color !== undefined ? o.color : 0x8a8a86);
-    s.mesh.material.rotation = Math.random() * Math.PI * 2;
+    s.mesh.material.rotation = SkywardRNG.random('vfx') * Math.PI * 2;
     const sc = o.size || 0.8;
     s.base = sc;
     s.baseOp = o.opacity !== undefined ? o.opacity : 0.4;
@@ -189,7 +189,7 @@ class Vfx {
     this._fc = (this._fc + 1) % this._flashes.length;
     f.mesh.visible = true;
     f.mesh.position.copy(pos);
-    f.mesh.material.rotation = Math.random() * Math.PI * 2;
+    f.mesh.material.rotation = SkywardRNG.random('vfx') * Math.PI * 2;
     if (o.color !== undefined) f.mesh.material.color.setHex(o.color);
     const sc = o.size || 1;
     f.size = sc;
@@ -205,7 +205,7 @@ class Vfx {
     this._rc = (this._rc + 1) % this._rings.length;
     r.mesh.visible = true;
     r.mesh.position.copy(pos);
-    r.mesh.rotation.set(-Math.PI / 2, 0, Math.random() * Math.PI);
+    r.mesh.rotation.set(-Math.PI / 2, 0, SkywardRNG.random('vfx') * Math.PI);
     r.mesh.material.opacity = o.opacity !== undefined ? o.opacity : 0.9;
     r.size = size;
     r.max = o.life || 0.4;
@@ -264,13 +264,13 @@ class Vfx {
     const nSmoke = Math.round((big ? 8 : 4) * R);
     for (let i = 0; i < nSmoke; i++) {
       const sp = p.clone();
-      sp.x += (Math.random() - 0.5) * radius * 0.7;
-      sp.z += (Math.random() - 0.5) * radius * 0.7;
-      sp.y += Math.random() * 0.9;
+      sp.x += (SkywardRNG.random('vfx') - 0.5) * radius * 0.7;
+      sp.z += (SkywardRNG.random('vfx') - 0.5) * radius * 0.7;
+      sp.y += SkywardRNG.random('vfx') * 0.9;
       this.smoke(sp, {
-        size: (1.2 + Math.random() * 1.5) * (big ? 1.3 : 1),
+        size: (1.2 + SkywardRNG.random('vfx') * 1.5) * (big ? 1.3 : 1),
         grow: 2.3, rise: 1.7,
-        life: 1.1 + Math.random() * 0.5,
+        life: 1.1 + SkywardRNG.random('vfx') * 0.5,
         color: 0x4a4744, opacity: 0.42
       });
     }
