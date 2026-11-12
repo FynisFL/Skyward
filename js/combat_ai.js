@@ -74,7 +74,7 @@
     const count = phase >= 3 ? 5 : (phase >= 2 ? 3 : 1);
     const spread = phase >= 3 ? 0.2 : (phase >= 2 ? 0.13 : 0);
     const offsets = [];
-    for (let i = 0; i < count; i++) offsets.push((i - (count - 1) / 2) * spread);
+    for (let i = 0; i < count; i++) offsets.push(Number(((i - (count - 1) / 2) * spread).toFixed(6)));
     return offsets;
   }
 
