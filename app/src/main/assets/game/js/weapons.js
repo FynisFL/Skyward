@@ -342,12 +342,15 @@ class WeaponSystem {
 
     if (hitEnemy && hitEnemy.alive) {
       if (hitNormal) hitPoint.addScaledVector(hitNormal, 0.02);
-      const weakpointMultiplier = eh.object.userData.weakpoint ? 1.8 : 1;
+      const isWeakpoint = !!eh.object.userData.weakpoint;
+      const weakpointExposed = isWeakpoint && typeof hitEnemy.isWeakpointExposed === 'function' && hitEnemy.isWeakpointExposed();
+      const weakpointMultiplier = isWeakpoint ? (weakpointExposed ? 2.5 : 1) : 1;
       const appliedDamage = d.damage * this.player.mods.damage * weakpointMultiplier;
-      const killed = hitEnemy.takeDamage(appliedDamage, hitPoint);
+      const hitMeta = { weakpoint: isWeakpoint, weakpointExposed: !!weakpointExposed };
+      const killed = hitEnemy.takeDamage(appliedDamage, hitPoint, hitMeta);
       if (hitNormal && hitEnemy.alive) hitEnemy.flinch(hitNormal);
       this.sound.hit();
-      this.onHit(hitEnemy, appliedDamage, killed, 'firearm');
+      this.onHit(hitEnemy, appliedDamage, killed, 'firearm', hitMeta);
       if (killed) this.onKill(hitEnemy);
     } else if (hitPoint && hitNormal && surface) {
       if (vfx) vfx.impact(hitPoint, hitNormal, surface);
