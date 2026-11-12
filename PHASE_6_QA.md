@@ -13,7 +13,7 @@ node tools/qa/validate.mjs
 find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
 
-The validator checks local script dependencies, unique HTML IDs, JavaScript syntax, web/Android mirror parity, core gameplay contracts, diagnostic metrics and Android CI wiring. GitHub Actions runs it before APK packaging.
+The validator checks local script dependencies, unique HTML IDs, JavaScript syntax, web/Android mirror parity, core gameplay contracts, diagnostic metrics and Android CI wiring. GitHub Actions runs it before APK packaging and during repository validation.
 
 ## Runtime benchmark
 
@@ -22,10 +22,10 @@ Use the same device, browser/WebView version, display orientation, resolution, q
 1. Load the game and confirm there are no uncaught console errors.
 2. Start the same mission with the same class and weapon.
 3. Press F3 and play for at least 30 seconds.
-4. Record average FPS and frame-time p50/p95/p99/max, draw calls, triangles, geometries, textures, particles, decals and alive enemy count.
+4. Record FPS, frame-time p50/p95/p99/max, draw calls, triangles, geometries, textures, particles, decals and alive enemy count.
 5. Measure three scenarios: menu/initial load; ordinary combat; peak load with boss, multiple enemies and active VFX.
 6. Repeat each scenario three times and compare median run values.
-7. Repeat on Android in portrait and landscape. Do not compare desktop and mobile numbers as equivalent hardware.
+7. Repeat on Android in portrait and landscape where the target wrapper/device permits. Do not compare desktop and mobile numbers as equivalent hardware.
 
 The read-only browser-console snapshot is:
 
@@ -50,11 +50,12 @@ Frame-time values are in milliseconds. Percentiles use a rolling window of up to
 - [ ] Death, victory, retry and menu return clean projectiles and pickups.
 - [ ] Settings and progression survive reload.
 - [ ] Touch joystick, touch-look, multi-touch and pointer cancellation.
-- [ ] Background/resume and WebGL context loss do not leave stuck input.
+- [ ] Background/resume, WebGL context loss and context restoration do not leave stuck input or a broken scene.
 
 ## Known limits
 
 - Automated checks are source/packaging validation, not a full browser playthrough.
 - No screenshot visual-regression baseline is included because the project does not yet have a pinned browser automation dependency or deterministic capture mode.
-- Core gameplay still uses Math.random(); deterministic replay and reproducible visual captures remain future work.
+- Runtime `Math.random()` calls were removed in Phase 7 and replaced with seeded RNG streams. Replay is not yet complete for touch controls or platform lifecycle events; see [PHASE_7_QA.md](PHASE_7_QA.md).
+- WebGL context restoration currently reloads the page; in-place renderer/scene recovery is not implemented.
 - CI does not claim device FPS or memory performance. Collect those metrics on target hardware.
