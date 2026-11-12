@@ -118,15 +118,32 @@
     const def = (gltf.materials || [])[index] || {};
     const pbr = def.pbrMetallicRoughness || {};
     const base = pbr.baseColorFactor || [1, 1, 1, 1];
+    // Quaternius ORM atlases encode several armor/gun surfaces as almost fully
+    // metallic. With a lightweight scene environment this removes diffuse
+    // response and makes the assets read as black silhouettes. Use per-atlas
+    // material limits while preserving the original maps and emissive masks.
+    const materialProfile = {
+      MI_Enemies:       { metalnessCap: 0.12, roughnessFloor: 0.64, albedoLift: 1.42, envIntensity: 1.35 },
+      MI_Enemies_Large: { metalnessCap: 0.12, roughnessFloor: 0.64, albedoLift: 1.48, envIntensity: 1.35 },
+      MI_Guns_Batch1:   { metalnessCap: 0.18, roughnessFloor: 0.60, albedoLift: 1.58, envIntensity: 1.25 },
+      MI_Guns_Batch2:   { metalnessCap: 0.16, roughnessFloor: 0.62, albedoLift: 1.42, envIntensity: 1.25 },
+      MI_Props_Batch2:  { metalnessCap: 0.28, roughnessFloor: 0.56, albedoLift: 1.20, envIntensity: 1.30 }
+    }[def.name] || null;
+    const metalnessCap = materialProfile ? materialProfile.metalnessCap : 0.68;
+    const roughnessFloor = materialProfile ? materialProfile.roughnessFloor : 0.38;
+    const albedoLift = materialProfile ? materialProfile.albedoLift : 1.12;
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(base[0], base[1], base[2]),
       opacity: base[3],
-      metalness: Math.min(0.68, pbr.metallicFactor === undefined ? 1 : pbr.metallicFactor),
-      roughness: Math.max(0.38, Math.min(0.86, pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor)),
+      metalness: Math.min(metalnessCap, pbr.metallicFactor === undefined ? 1 : pbr.metallicFactor),
+      roughness: Math.max(roughnessFloor, Math.min(0.86, pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor)),
       side: def.doubleSided ? THREE.DoubleSide : THREE.FrontSide
     });
-    if (window.SKYWARD_ENV) { mat.envMap = window.SKYWARD_ENV; mat.envMapIntensity = 1.25; }
-    mat.color.multiplyScalar(1.12);
+    if (window.SKYWARD_ENV) {
+      mat.envMap = window.SKYWARD_ENV;
+      mat.envMapIntensity = materialProfile ? materialProfile.envIntensity : 1.25;
+    }
+    mat.color.multiplyScalar(albedoLift);
     mat.map = textureFor(gltf, pbr.baseColorTexture, true);
     const orm = textureFor(gltf, pbr.metallicRoughnessTexture, false);
     if (orm) { mat.metalnessMap = orm; mat.roughnessMap = orm; }
