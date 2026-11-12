@@ -440,7 +440,7 @@
         else if (e.code === 'Digit1') weapons.switchWeapon('auto');
         else if (e.code === 'Digit2') weapons.switchWeapon('handcannon');
         else if (e.code === 'Digit3') weapons.switchWeapon('scout');
-        else if (e.code === 'Space') { if (player.onGround && !player.dead) { player.vel.y = 10.5; player.onGround = false; Sound.jump(); } }
+        else if (e.code === 'Space') { if (player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); } }
         else if (e.code === 'KeyP') pauseGame();
       }
       player.keys.add(e.code);
@@ -764,7 +764,7 @@
         if (action === 'sprint') player.keys.add('ShiftLeft');
         else if (action === 'fire') triggerDown = true;
         else if (action === 'aim') weapons.setAiming(true);
-        else if (action === 'jump' && player.onGround && !player.dead) { player.vel.y = 10.5; player.onGround = false; Sound.jump(); }
+        else if (action === 'jump' && player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); }
         else if (action === 'reload') weapons.startReload();
         else if (action === 'dash') { if (player.tryDash()) Sound.dash(); }
         else if (action === 'grenade') weapons.throwGrenade();
@@ -807,7 +807,7 @@
     Music.setScene('combat');
     ui.hideAll();
     ui.el.hud.classList.remove('hidden');
-    player.reset();
+    player.reset(world);
     weapons.reset();
     waves.clearAll(); clearPickups(); ui.hideUpgrade();
     world.setMood(G.mission.mood); if (world.setMap) world.setMap(G.mission.id);
@@ -976,7 +976,7 @@
       const choosingUpgrade = waves.state === 'upgrade';
       const sdt = choosingUpgrade ? 0 : dt * G.timeScale;
       if (!choosingUpgrade) {
-        player.update(sdt, world.bounds);
+        player.update(sdt, world.bounds, world);
         weapons.update(sdt, triggerDown);
         waves.update(sdt, player, world.bounds);
         updatePickups(sdt);

@@ -158,7 +158,56 @@ const World = (() => {
   function createWorld(scene, quality) {
     const q = quality || 'med';
     const shadowOn = q === 'high';
-    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [] };
+    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [] };
+    
+    // Phase 1: surface queries used by player vertical physics.
+    function containsPlatform(p, x, z, inset = 0.18) {
+      const halfW = Math.max(0, p.w * 0.5 - inset);
+      const halfD = Math.max(0, p.d * 0.5 - inset);
+      return Math.abs(x - p.x) <= halfW && Math.abs(z - p.z) <= halfD;
+    }
+
+    world.getSpawnHeight = function (x, z) {
+      let height = Number.isFinite(this.groundY) ? this.groundY : 0;
+      for (let i = 0; i < this.platforms.length; i++) {
+        const p = this.platforms[i];
+        if (containsPlatform(p, x, z) && p.topY > height) height = p.topY;
+      }
+      return height;
+    };
+
+    world.getWalkableHeight = function (x, z, feetY, maxStepUp = 0.45, maxStepDown = 0.55) {
+      const minY = feetY - Math.max(0, maxStepDown) - 1e-4;
+      const maxY = feetY + Math.max(0, maxStepUp) + 1e-4;
+      let height = null;
+      const ground = Number.isFinite(this.groundY) ? this.groundY : 0;
+      if (ground >= minY && ground <= maxY) height = ground;
+      for (let i = 0; i < this.platforms.length; i++) {
+        const p = this.platforms[i];
+        if (!containsPlatform(p, x, z) || p.topY < minY || p.topY > maxY) continue;
+        if (height === null || p.topY > height) height = p.topY;
+      }
+      return height;
+    };
+
+    world.getLandingHeight = function (x, z, fromFeetY, toFeetY) {
+      if (toFeetY > fromFeetY) return null;
+      let landing = null;
+      const ground = Number.isFinite(this.groundY) ? this.groundY : 0;
+      if (fromFeetY >= ground - 1e-4 && toFeetY <= ground + 1e-4) landing = ground;
+      for (let i = 0; i < this.platforms.length; i++) {
+        const p = this.platforms[i];
+        if (!containsPlatform(p, x, z)) continue;
+        if (fromFeetY < p.topY - 1e-4 || toFeetY > p.topY + 1e-4) continue;
+        if (landing === null || p.topY > landing) landing = p.topY;
+      }
+      return landing;
+    };
+
+    world.sampleGroundHeight = function (x, z) {
+      return this.getSpawnHeight(x, z);
+    };
+
 
     scene.add(makeSkyDome());
     scene.add(makeHaze());
@@ -198,6 +247,39 @@ const World = (() => {
     ground.position.y = -3.5;
     ground.receiveShadow = shadowOn;
     scene.add(ground);
+    
+    // Raised walkable pads from the Phase 1 arena layout.
+    const phase1Platforms = [
+      { x: 0, y: 0, z: 0, w: 16, d: 16, h: 0.7, color: 0x6d7782 },
+      { x: 0, y: 0, z: -18, w: 15, d: 12, h: 0.8, color: 0x5a6672 },
+      { x: -19, y: 0, z: 16, w: 12, d: 12, h: 0.9, color: 0x5b6875 },
+      { x: 22, y: 0, z: 18, w: 10, d: 10, h: 0.82, color: 0x5b6671 },
+      { x: -28, y: 2.1, z: -8, w: 8, d: 10, h: 0.8, color: 0x586f76 },
+      { x: 28, y: 2.3, z: -10, w: 8, d: 10, h: 0.8, color: 0x536b75 },
+      { x: 0, y: 4.4, z: 20, w: 12, d: 9, h: 0.8, color: 0x4d737d },
+      { x: -14, y: 1.4, z: -30, w: 10, d: 8, h: 0.74, color: 0x677d61 },
+      { x: 15, y: 1.2, z: -28, w: 10, d: 8, h: 0.74, color: 0x677d61 },
+      { x: -42, y: 0.8, z: -18, w: 9, d: 8, h: 0.66, color: 0x647c67 },
+      { x: 42, y: 0.8, z: 18, w: 9, d: 8, h: 0.66, color: 0x647c67 },
+      { x: 0, y: 0.2, z: 32, w: 18, d: 4.8, h: 0.58, color: 0x72867f }
+    ];
+    phase1Platforms.forEach(p => {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(p.w, p.h, p.d),
+        new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.82, metalness: 0.18 })
+      );
+      mesh.position.set(p.x, p.y + p.h * 0.5, p.z);
+      mesh.castShadow = shadowOn;
+      mesh.receiveShadow = true;
+      mesh.userData.platform = true;
+      mesh.userData.blocksBullets = true;
+      scene.add(mesh);
+      world.platforms.push({
+        x: p.x, z: p.z, w: p.w, d: p.d,
+        topY: p.y + p.h, baseY: p.y, height: p.h
+      });
+    });
+
 
     const rockMat = Tex.mat('stone', { rx: 10, ry: 3, roughness: 1, metalness: 0, bumpScale: 0.05 });
     const underside = new THREE.Mesh(new THREE.CylinderGeometry(46, 9, 30, 56), rockMat);

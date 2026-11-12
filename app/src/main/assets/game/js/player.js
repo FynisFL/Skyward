@@ -21,6 +21,11 @@ class Player {
     this.touchLook = null;
     this.onGround = true;
     this.eyeHeight = 1.7;
+    this.groundY = 0;
+    this.gravity = 30;
+    this.jumpVelocity = 10.5;
+    this.maxStepUp = 0.45;
+    this.maxStepDown = 0.55;
 
     this.maxHealth = Math.round(100 * this.mods.maxHp);
     this.health = this.maxHealth;
@@ -44,8 +49,15 @@ class Player {
     this.reset();
   }
 
-  reset() {
-    this.pos.set(0, this.eyeHeight, 34);
+  reset(world) {
+    const spawnX = 0;
+    const spawnZ = 34;
+    const spawnGround = world && typeof world.getSpawnHeight === 'function'
+      ? world.getSpawnHeight(spawnX, spawnZ)
+      : (world && Number.isFinite(world.groundY) ? world.groundY : 0);
+    this.groundY = Number.isFinite(spawnGround) ? spawnGround : 0;
+    this.onGround = true;
+    this.pos.set(spawnX, this.groundY + this.eyeHeight, spawnZ);
     this.yaw.rotation.set(0, 0, 0);
     this.pitch.rotation.set(0, 0, 0);
     this.vel.set(0, 0, 0);
@@ -57,7 +69,6 @@ class Player {
     this.dashTime = 0;
     this.shake = 0;
   }
-
   look(dx, dy) {
     const s = 0.0022 * this.sensitivity;
     this.yaw.rotation.y -= dx * s;
@@ -107,7 +118,7 @@ class Player {
     return true;
   }
 
-  update(dt, bounds) {
+  update(dt, bounds, world) {
     if (this.dead) return;
 
     const sprint = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
@@ -140,36 +151,72 @@ class Player {
       this.dashTime -= dt;
     }
 
-    this.pos.x += move.x * dt;
-    this.pos.z += move.z * dt;
+    const nextX = this.pos.x + move.x * dt;
+    const nextZ = this.pos.z + move.z * dt;
+    const targetPos = new THREE.Vector3(nextX, this.pos.y, nextZ);
 
-    // giới hạn sân chơi
-    const d = Math.hypot(this.pos.x, this.pos.z);
+    const d = Math.hypot(targetPos.x, targetPos.z);
     if (d > bounds) {
-      this.pos.x *= bounds / d;
-      this.pos.z *= bounds / d;
+      targetPos.x *= bounds / d;
+      targetPos.z *= bounds / d;
     }
 
-    // trọng lực + nhảy
-    this.vel.y -= 30 * dt;
-    this.pos.y += this.vel.y * dt;
-    if (this.pos.y <= this.eyeHeight) {
-      if (!this.onGround && this.vel.y < -9) this.landDip = 0.12;
-      this.pos.y = this.eyeHeight;
-      this.vel.y = 0;
-      this.onGround = true;
-    } else {
-      this.onGround = false;
+    // Keep feet height independent from horizontal movement. Vertical motion is
+    // integrated once per frame; walking onto a platform cannot teleport Y.
+    const previousFeetY = this.pos.y - this.eyeHeight;
+    this.pos.x = targetPos.x;
+    this.pos.z = targetPos.z;
+
+    const getWalkableHeight = world && typeof world.getWalkableHeight === 'function'
+      ? world.getWalkableHeight.bind(world)
+      : null;
+    const getLandingHeight = world && typeof world.getLandingHeight === 'function'
+      ? world.getLandingHeight.bind(world)
+      : null;
+    const fallbackGround = world && Number.isFinite(world.groundY) ? world.groundY : 0;
+
+    if (this.onGround) {
+      const supportY = getWalkableHeight
+        ? getWalkableHeight(this.pos.x, this.pos.z, previousFeetY, this.maxStepUp, this.maxStepDown)
+        : (Math.abs(previousFeetY - fallbackGround) <= this.maxStepUp ? fallbackGround : null);
+
+      if (Number.isFinite(supportY)) {
+        // A small rise/drop is treated as a step. Larger drops start a fall.
+        this.groundY = supportY;
+        this.pos.y = supportY + this.eyeHeight;
+        this.vel.y = 0;
+      } else {
+        this.onGround = false;
+      }
     }
 
-    // hồi chiêu
+    if (!this.onGround) {
+      const fromFeetY = this.pos.y - this.eyeHeight;
+      const nextFeetY = fromFeetY + this.vel.y * dt - 0.5 * this.gravity * dt * dt;
+      this.vel.y -= this.gravity * dt;
+
+      // Only land when descending through a surface from above.
+      const landingY = this.vel.y <= 0 && getLandingHeight
+        ? getLandingHeight(this.pos.x, this.pos.z, fromFeetY, nextFeetY)
+        : (this.vel.y <= 0 && fromFeetY >= fallbackGround && nextFeetY <= fallbackGround ? fallbackGround : null);
+
+      if (Number.isFinite(landingY)) {
+        if (this.vel.y < -9) this.landDip = 0.12;
+        this.groundY = landingY;
+        this.pos.y = landingY + this.eyeHeight;
+        this.vel.y = 0;
+        this.onGround = true;
+      } else {
+        this.pos.y = nextFeetY + this.eyeHeight;
+      }
+    }
+
     this.dashCd = Math.max(0, this.dashCd - dt);
     this.grenadeCd = Math.max(0, this.grenadeCd - dt);
     this.superCd = Math.max(0, this.superCd - dt);
     this.landDip = Math.max(0, this.landDip - dt);
     this.shake = Math.max(0, this.shake - dt * 1.6);
 
-    // camera bob + landing dip + shake
     const bobY = Math.sin(this.bob) * 0.055 * Math.min(1, move.length() / 6);
     const bobX = Math.cos(this.bob * 0.5) * 0.03 * Math.min(1, move.length() / 6);
     const shakeX = (Math.random() - 0.5) * this.shake * 0.5;
@@ -177,7 +224,6 @@ class Player {
 
     this.camera.position.set(bobX + shakeX, bobY - this.landDip + shakeY, 0);
   }
-
   cooldownFraction(kind) {
     if (kind === 'q') return this.dashCdMax * this.mods.cooldown === 0 ? 0 : this.dashCd / (this.dashCdMax * this.mods.cooldown);
     if (kind === 'e') return this.grenadeCd / (this.grenadeCdMax * this.mods.cooldown);
