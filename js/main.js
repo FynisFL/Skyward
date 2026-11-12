@@ -491,13 +491,14 @@
       }
       player.keys.add(e.code);
     } else if (G.state === 'paused' && e.code === 'KeyP') {
+      recordInput('key-down', { code: e.code });
       resumeGame();
     }
   });
 
   window.addEventListener('keyup', (e) => {
     if (replay.isPlaying()) return;
-    if (G.state === 'playing') recordInput('key-up', { code: e.code });
+    if (replay.isRecording()) recordInput('key-up', { code: e.code });
     player.keys.delete(e.code);
   });
 
@@ -1101,9 +1102,11 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const replaying = replay.isPlaying();
+    let replayFrame = null;
     if (replaying) {
       const step = replay.nextFrame();
       if (!step) { pauseGame(); return; }
+      replayFrame = step;
       replay.drainInputsForFrame(step.index).forEach(applyReplayInput);
     }
     if (!replaying && G.state === 'playing' && (pendingLookX !== 0 || pendingLookY !== 0)) {
@@ -1116,7 +1119,7 @@
     if (!(frameDt > 0)) frameDt = 0.016;
     const perfDt = frameDt;
     let dt = Math.min(frameDt, 0.06);
-    if (replaying) { const tape = replay.getTape(); const frameIndex = replay.status().playbackFrame - 1; if (tape && frameIndex >= 0) dt = tape.frames[frameIndex]; }
+    if (replaying && replayFrame) dt = replayFrame.dt;
     if (replay.isRecording()) replay.beginFrame(dt);
     update(dt);
     replay.endFrame();
