@@ -36,7 +36,7 @@ replay.endFrame();
 replay.finish({ victory: true, score: 987 });
 const tape = replay.getTape();
 assert.equal(tape.version, 2);
-assert.equal(tape.inputs.length, 6);
+assert.equal(tape.inputs.length, 7);
 assert.equal(tape.frames.length, 2);
 assert.equal(tape.events.length, 2);
 assert.equal(tape.inputs[0].frame, 0);
@@ -46,18 +46,18 @@ assert.equal(tape.inputs[4].frame, 1);
 replay.load(replay.export());
 assert.equal(replay.status().mode, 'ready');
 replay.startPlayback();
-events.emit('phase10:test', { marker: 1 });
 let frame = replay.nextFrame();
 assert.equal(frame.index, 0);
 assert.deepEqual(replay.drainInputsForFrame(0).map(input => input.action), [
   'key-down', 'touch-move', 'look', 'touch-action-down'
 ]);
-events.emit('phase10:test', { marker: 2 });
+events.emit('phase10:test', { marker: 1 });
 frame = replay.nextFrame();
 assert.equal(frame.index, 1);
 assert.deepEqual(replay.drainInputsForFrame(1).map(input => input.action), [
   'touch-action-up', 'game-pause', 'game-resume'
 ]);
+events.emit('phase10:test', { marker: 2 });
 assert.equal(replay.finish(tape.outcome).divergences, 0);
 
 // The terminal frame applies inputs recorded after the last simulation frame.
