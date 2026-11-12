@@ -167,6 +167,10 @@
     if (def.alphaMode === 'BLEND') { mat.transparent = true; mat.depthWrite = false; }
     if (def.alphaMode === 'MASK') { mat.alphaTest = def.alphaCutoff === undefined ? 0.5 : def.alphaCutoff; }
     mat.userData.gltfMaterial = def.name || '';
+    // Material maps are attached after construction. Three.js needs a program
+    // refresh so USE_MAP / USE_NORMALMAP / USE_METALNESSMAP defines are enabled;
+    // otherwise Base Color can silently be ignored and leave dark base factors.
+    mat.needsUpdate = true;
     return mat;
   }
   function getDefinition(name) {
