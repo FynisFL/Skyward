@@ -1284,7 +1284,19 @@
         cooldown: replayNumber(weapons.cooldown),
         reloading: replayNumber(weapons.reloading),
         aiming: !!weapons.aiming,
-        triggerDown: !!triggerDown
+        triggerDown: !!triggerDown,
+        wasTriggerDown: !!weapons._wasTriggerDown,
+        grenades: weapons.grenades.map(grenade => ({
+          position: replayVector(grenade.mesh && grenade.mesh.position),
+          velocity: replayVector(grenade.vel),
+          life: replayNumber(grenade.life),
+          fuse: replayNumber(grenade.fuse)
+        })),
+        strikes: weapons.strikes.map(strike => ({
+          x: replayNumber(strike.x),
+          z: replayNumber(strike.z),
+          time: replayNumber(strike.t)
+        }))
       },
       waves: {
         state: waves.state,
