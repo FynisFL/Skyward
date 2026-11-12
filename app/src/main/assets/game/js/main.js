@@ -68,7 +68,7 @@
   renderer.outputEncoding = THREE.sRGBEncoding;
   // Tone mapping kiểu điện ảnh, giữ chi tiết vùng sáng của vật liệu PBR.
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.22;
   renderer.shadowMap.enabled = settings.quality === 'high';
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 

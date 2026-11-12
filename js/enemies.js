@@ -180,8 +180,8 @@ class Enemy {
         asset.clips.forEach(clip => { this.assetActions[clip.name.toLowerCase()] = clip; });
         this.assetMaterials.forEach(mat => {
           if (mat.emissive) mat.emissive.setHex(cfg.glow);
-          // Accent riêng theo từng archetype, đủ rõ dưới ACES nhưng không phủ sáng toàn model.
-          mat.emissiveIntensity = 0.1;
+          // The supplied emissive atlas isolates only lamps/reactors; keep armor diffuse.
+          mat.emissiveIntensity = mat.emissiveMap ? 0.82 : 0.06;
         });
         // Keep the visible reactor and boss pods from the procedural fallback.
         g.children.forEach(child => {

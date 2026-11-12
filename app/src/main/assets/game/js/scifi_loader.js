@@ -9,6 +9,30 @@
   const textureCache = Object.create(null);
   const definitionCache = Object.create(null);
   let textureQuality = 'med';
+  const EMBEDDED_EMISSIVE_MASKS = {
+    MI_Enemies: 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAAAAAB5Gfe6AAAD9UlEQVR42u3czYtbVRjH8eeec5Mx8yJTRqh23qjKWK1CBSu+trYiuJARF26KXVT8AxRc+LYVl+JCRBFlcOFKEV36Ai0GcTnV4oCiLR1HHToWdaKT5J7zuEiYJk0WDWPefL6f1U1Wub/znHOfk3sTEQAwzDccelFxLlGTQbjmJOxI6uccZM/9s7vGw9bat8sXxV4AcusTV313enUrzS3sv7n05akNW+Uv7vm37tl+mR588ZA4UwnseucpEfHu8sXASgGMv3dUXMOQu9TYhfC1RcmZ7QOcD8d++zhXNdwKjb097gyfvpPFrzZtB3DgM8ksBzAl501vhtzCekxNBzBVFdsVkJaNB1AuGA/gl7yo6QC+350PpgMolRbEciPkxR8u+mi6FXxz3ngJ3Pe64d2wePXnFg6fSqPpGnjlmaYbBAaXgZdevU7Eee98j+4JjA3Q8IuoO+mf3rP2p6qqqux1/3Q5cJ1ZzhX9YPRftfsCPuSO3V756dzf+dyN0/rGWdfVJcGHI198sugHo/+qbYWDry4t7bthZjLbXH5/XaTbS2I1bg3KFKh/FxDEh5WVeoV2/4pQcMmABSASRLwkohpj96fd9OBswBq/DTK5KbLcBPc1gMR6AFu2A1Cp2A4gUeNTYDwxHYDKsn49OMtgX9yWF9B+AAAAAAAAAAAAAAAAAAAAAACA/5RrObAlnTEewKWfDBsNQEusAgAAAAAAAAAAAAAAAAAAAAAAAAAA/F+4ie0jowFMUgQAAAAAAAAAAAAArpgnAuODeKS8aTuA07lP0zjkAezoAYmNO0SHvQLSHWQXf77FhwEYwySpH2noaQCJXBxL+xyAT2JsmoRp1ssAzjzU70eMgsjo3E17J7yf+rV8/ocfL2Q9rACR1ZE+dwKjdx+6a9/0pQ/x+8rJl3v5v/Hzz/W1Apx8qKqqWbUmi6p6wE575mSuHCpZiLotlqvHOyzqnQ2h728AR/Mx513SsCz59PHhvzJfefpLWtVmUf/Y3dmgDvGToiF3b8vHT8LVD1sJwMncrCSXv6v6YGdzYHgDSOT6fExa28KDnTVnwxzAgsQ2785f29FJDfPT4te0iyUW5lonRrc6wb5SmW/fHPeyD+hzI9xuqL0bMxNArn1hzHY0BYY5AG1/vVvv6Do41BWQhHYXhw0zU+DdmG/Z/qvLLljZDTh54ButxubNQIhro1Y2Q+Jl4iONWeNeKKto0dAv4bzICxXNqlmIMYasmqnq2gljN6zu/LyhAv764LHJjjvqIS+CII8+sn96JNHS2TPF4qqIi6YCqJ1vIRUpV0TSJAYxx9fnvBvxTz5r/I51YVYAAAAAAAAAAAAAAAAAAACAmn8BZpxDti0ScqAAAAAASUVORK5CYII=',
+    MI_Enemies_Large: 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAAAAAB5Gfe6AAAA+klEQVR42u3bMUqEMRAG0En+32KxU1BhLUTYRvFENp7OA22hlZ2sbKNYLCLqxksICc57F8jkS8ikmQgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEjvMPXup7h9XkUdopYuVZQ4Xl5nDqDFen8xyG3sdAzv9TxzAD+xbatomW/A6+dJ7gC+NovYp+6El0t/odyqCAAAAAAAAAAAAAAA/qFpksEgJ9Fp3bubdercD3abQSrpNLkxl4fMk6M1zhZvUfIGUOIoHjMHEHH6/ZL5DShxNT8NMjnapw22j3q/a0FedZYBAAAAAAAAAAAAAAAAAAAAAMAf+AWMmB7UEymd/wAAAABJRU5ErkJggg==',
+    MI_Guns_Batch1: 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAAAAAB5Gfe6AAAEA0lEQVR42u3dT2hcVRTH8fPufclM0vwpcbQ1agdMadIUg/8qQgUFq7hw4abipog7N4IIKrgUWlAKLroRxKUuVNy5cKVQRK3aTW0qSrDBtlqahNSakJnk3eOi9c86eS/zDuf7gZCs7mR+c++59743c0cEAAAAAAAAAAAAgAfRzn+qL0+cjVp2s7mZADLZ15Ss9GaDod7a6VbQaPBeAywF0NdX/wBClYH+flG03i9RrHZeqaTlcstqo51dXJGQnNaT5rG5ovjtZMtrOR35RlVV9ee7XM4tQT7QTpFS6ugpjwEE2Zc2kqqqruthQyvsUFo7z2d6s6LqYxUsWeu/EPrfPqVlquuW5Yd/X/XsgstZYPfKRqGqmtZ1xmMVjPKGrq8XxUZX3/W5xQpy8sY64KM+t1vMpz78cfbTI2yt/Yrxxg8AAAAAAAAAAADKwI0X744MlNpcsNb/39rVcXwTNpdXXvJ8EzrK08cMfcSjfOG29/o9TwJRjh8sfQAYGlCheLj7XUyOB4C8M15Fq2YGQHr0ymXPFSDI223x3APSZHc+Og4gyhNfiOceUMT211L4DSDI1OJqFM8B3H9ePA8BlYlzVYwAMwEUef8F1z1AdnU3guMAgty+VM0nsYwEkMkt18T3EBhbch7AQHIeQLpWzeEBZgLI+pz3ABl0PQuI/NXvvAcsjbkOQOXqqOsAklze6XwWWGjsSJ4DiLI8Uck/a2ca/Gl/JfOgmesBcma6kiJgpgeE+WYrVTK2rASg43fMln+eoqHL4vL5wSrGgKF7g1dW70vBcQAqnzzj+kjNFM71Hyg8n1IRZPJE+UXb0A13jVfvHf4lquc+MPz+qOuTWoI8cqLst8mZes+Jxvn24VNB3QYgmn//+IPfZp7LgMizAwLX+MAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAjwQi8G3sbtdPP5c3T9fkdNReDcXhhqjrAIpUk87YqwCyzHkAtTkevFcB5GuSuQ5gd11OyM579LiXhp0vhIZ2shgEAAAAAPwnSJSjr23bPj2vXQBJMhnfs41511H3uvMANDkPYHDHtj1UXsOnn+SrhiTBttj8xfmoIllR1cBMwUgXCG57wNTUaFz98/yvTgPYe6g4+0en2Z6JHy8Gj/VqsnXzj+lX9zqtnjGISIgy8vqtrmeRKHteNF0Jt3qTVuPyZGchqNsAJNPuzKzhALbce5NcGhHDXwdfwvBdE8sL9xICiKbXASUEMFZY/kb4LQcQ5Z451zVA4/QZj5v3EP759cJDphdCm70ilERCpinJ0eXTpndDmyxfg082FpNq84Hn5j6zvRvc5HY43HloaC3p0NKXC8Z3w1u4JNZqrCyKWL8a8Dfgr/IlD/GnDwAAAABJRU5ErkJggg==',
+    MI_Guns_Batch2: 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAAAAAB5Gfe6AAAFV0lEQVR42u3bTUwcZRgH8Gfed3aWXWD5rKXQFim2VUEBQ2M9GEWtSQ+NxmhaE71YExNPHjwbD568mGg03vRkvHiojR+XHxhgTrcHENjVWY9uAklIo5aOwsOx8vI+HhWV2d9AtzC67+/5/p04ehtnneb+HLRHozSjHQ4RwiSR5ASFpEJEbfBORUjVRZLmeUmGSeT9ReJOogR4gvYOnRxrd0c/PFeSv5PFjje7PX02LwqbuenTXwm8XSajqb/9XF5mZmT+yRF77PzTKzMwzpwv6QOPHi8zMPxwJ6h1l+NBWJLz8TzE7nuc5Dn+Sk42gwUV2HMdxmN/My7P1V2bXcRSvntiBCkQOtIT40N0LnsvMzCrNz+ZkE7vMNjMze44a9kcEneG0YmZ2eL679PNAQaM9+MTIkf3hPNak19nJjAB21Ne+NE16fiPCn/kiko5mIzZ/QGa5C2BFREPPsBXSCPhCuWvJKJ5u8JfmU7WeplITMX/k3WzEU9eiJU02qLrxXjc9OxbWE+p9C40VTWb/zdRhZENGQyzli/RlI4bR0XqjlCtBUAGSl5yoDOmhBt1mzl6trvpjKxsBUjm7JP+FvUqlXAmDRrrrUHoltIeeyzazx+eXpa80PxnrFVDqym3hi1yg9QjzVLLsq4AIddptnVob0Mrmp3xTnaDuVdfLjPQ0v+bri4L62VHrk+A75Z8E2zqbwtwHnWB2M6v9ezmroKQ3WDmu8hybv4+InMiHbLtKKS/NE7vKvw2yYpFQB9lzfzEz8+JbeV1L0tvpTDt/e1fuWBR1X66tApNHS7wNKMNZQKj404812Re/+bsw0n/y8Z7582fPFt714itDCXv8zPvTO3AYaBm4pySnQRkYqd908ujtEndwHLS2tnsNmmBaj12/GmYBvMypXxW+D/CEcJfJ5IA3BZLn5ohMt8j2l/1spv7YRuvk1LJxfDLcPsVKKcWBASIKjjAJg4vu/oMzCzcTzXPhFGA5SfNcAQdpLv5DWK1XnzEudcyEMwSi+9IGVRdlkmNv6eBsBL8OSFXba5c+e97tmf2nIpfB8rjXklvJHwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAq0/GTQrOM8/JdthV6gV5kzlXLSOJGcbftafacGhwCdZ0Hi7or9oiZHuyowR5AS1O3iiga911RPaMD017N9YDk5T+LuEdRfOHAA8ppr8iMonIbBUjsbi7qnpXExO8kr1dkAZ5s38YQEMotYmpjWhxKzg6MJSuzS990yzF1dO6NV+aYruu9s583cq7q9ycu2HrtA8ycK6vTklWekCVT4W2M9dsJGk2dIqVXAXLbXD388j4du8GGzkMmzkd6q/r+H9u7vYSr/n2ImdB84fPus/QugLKN7bwPqH5u87JmO5l8jREsZQAAAABQBKNKP3es10pdCeMvIFV6GrSGbo2vDGv89vLuLjpFhzs07gEp0UIrVgi/qUrfB3iHJpcW778WwiRQrZNgd8dSYmxa5+VLNmEJBwAAgFIy4zV/4PqPrbDZGJWRhYVa31FuGom31wlSMlnjBdi0i8fbhMdEpqVpAaJtzAYRGRFNC9Dyv12ktgsQMVmThW6zAgjNe8DG4mDqWYCNtFnTArDmBZCki+ACSMlF7JVr47gTfEJgw8ikXvMboc0a2BRCCoOEsar51w4BACr73AqaaNmjdfqSvluOlOg3V8d+jed//AXDQO9BgP/SCgAAAAAAAAAAAAAAAACVTKIEmjfQS96MqORvnJf8u1cvHK7571vDznaxbfoX6eDpEK9TRA4AAAAASUVORK5CYII=',
+    MI_Props_Batch2: 'iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAAAAAB5Gfe6AAADfklEQVR42u3dy2sVSRTA4dPVdZP4jApq1FwYH2RGMCJGd6LigyDqYhYDCj6YYTIbYdSVoitdiIL4B8R9VoKCILgQXakBIUYXPhFBYYxXE9RoyO3uOrO4waVg2sTbOb9vn9zUqXNOV1Wn+4oAAAAAAACgUGKX8xdExR27cyJp/ggWNwAaQpiz4/NHoxngwi9/VVp+X/l4y39Gi1+uqqomukJytQFf2AJws6TqxPc8d8FkBjhZcjPL9L7pa2BXEi4XuY3nXgJMG9K74sRwBPa8PVDcLvZDzDG+EHYCAAAAAMBP3FjGBT+XiPOFwMvJ7oIezdSGHWf/bgq5ThcXrBUtcgacG3jUleN81Uv37YIez9YywA19ef0m1xTOLOo9tlrhRmcH+3vjzGL3rwUg893ico1/pKgdYKz3p07y3WEbaSx0BkjO4as8G2YtBQAAAAAAAAAAAAAAAAAAAAAAAAAA8C22Xxg4u3kSPqR+n3pva5MQve43m/odnSWRps0brFbB/N2yWLzItrLJLuNk2QP5+0Rakr7lE/wn1muCJYNyeuWJRIaDBJMBaGgSt3/NYWmMjTaBpRvFi98k61ZZ7YLb2kVEVuya6OHX7TrAbZ72KpTDzarZhZA0L4wqg+wG2AoBAOytA+JIM/OTMykvaq3T92CWj//h3n0Odid/1s6rOtRzaLblAtg+pHrF7hdpOS/t70f1kOGvEmuQvZp9KBveEMRyR/Wi4RTw8o8m+pvdFHDSnmjffMt74rmDyWrDJSAyc+TehBeAq+cSaG56bDsA7fJoEj6ljh2Uh4YbgJeOavKr3YtgSeY9TF80Gs6ARb2qPWYvgq712Kg+O9Nqdg24/lL/hc4ZhvPfjfVBy3wsAAAAAAAAAAAAAIAfZHy3YL0TJWhmB+NCy75VlU+Gp7/zierHW0YfZ/HSel01SVSXGf0XvvUvtZppCKM2A1A+VdFUVYMOt5gbvJPFvZ9UM1VV1cpcg+XfpSGtDT/TGw1TZVq/Q8jSsctmkKdVby8AaRx9/bGtTam1AKgMfNC09kx3JAummyuBTPrelHw89kRzNkU2A99VyAPbt3S0dWpUywGrjmo1VQ1v51kcvPPey3nVtJpeK1l9mMXL8b5e1Z1TZFc8vlLu+DM94uy+32FKHYiMLwNcJLzjBQAAAAAAAAAAAAAAAAAAAAAAAAAAAPXlf6Gh90f1dpa5AAAAAElFTkSuQmCC'
+  };
+  const embeddedEmissiveCache = Object.create(null);
+  function getEmbeddedEmissiveMask(materialName) {
+    const encoded = EMBEDDED_EMISSIVE_MASKS[materialName];
+    if (!encoded) return null;
+    if (embeddedEmissiveCache[materialName]) return embeddedEmissiveCache[materialName];
+    const tex = new THREE.TextureLoader().load('data:image/png;base64,' + encoded, function (loaded) {
+      loaded.flipY = false;
+      loaded.encoding = THREE.sRGBEncoding;
+      loaded.anisotropy = 4;
+      loaded.needsUpdate = true;
+    });
+    tex.flipY = false;
+    tex.encoding = THREE.sRGBEncoding;
+    tex.anisotropy = 4;
+    embeddedEmissiveCache[materialName] = tex;
+    return tex;
+  }
   const component = {
     5120: { Ctor: Int8Array, bytes: 1, get: 'getInt8' },
     5121: { Ctor: Uint8Array, bytes: 1, get: 'getUint8' },
@@ -97,11 +121,12 @@
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(base[0], base[1], base[2]),
       opacity: base[3],
-      metalness: pbr.metallicFactor === undefined ? 1 : pbr.metallicFactor,
-      roughness: pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor,
+      metalness: Math.min(0.68, pbr.metallicFactor === undefined ? 1 : pbr.metallicFactor),
+      roughness: Math.max(0.38, Math.min(0.86, pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor)),
       side: def.doubleSided ? THREE.DoubleSide : THREE.FrontSide
     });
-    if (window.SKYWARD_ENV) { mat.envMap = window.SKYWARD_ENV; mat.envMapIntensity = 0.9; }
+    if (window.SKYWARD_ENV) { mat.envMap = window.SKYWARD_ENV; mat.envMapIntensity = 1.25; }
+    mat.color.multiplyScalar(1.12);
     mat.map = textureFor(gltf, pbr.baseColorTexture, true);
     const orm = textureFor(gltf, pbr.metallicRoughnessTexture, false);
     if (orm) { mat.metalnessMap = orm; mat.roughnessMap = orm; }
@@ -114,7 +139,14 @@
       (def.emissiveFactor || [0, 0, 0])[1],
       (def.emissiveFactor || [0, 0, 0])[2]
     );
-    mat.emissiveMap = textureFor(gltf, def.emissiveTexture, true);
+    mat.emissiveMap = textureFor(gltf, def.emissiveTexture, true) || getEmbeddedEmissiveMask(def.name);
+    if (mat.emissiveMap && !def.emissiveFactor) {
+      if (def.name === 'MI_Props_Batch2') mat.emissive.setRGB(0.34, 1.0, 0.58);
+      else if (def.name.indexOf('MI_Guns_') === 0) mat.emissive.setRGB(0.38, 0.78, 1.0);
+      else mat.emissive.setRGB(1.0, 1.0, 1.0);
+      mat.emissiveIntensity = 0.9;
+    }
+    if (mat.aoMap) mat.aoMapIntensity = Math.min(mat.aoMapIntensity, 0.72);
     if (def.alphaMode === 'BLEND') { mat.transparent = true; mat.depthWrite = false; }
     if (def.alphaMode === 'MASK') { mat.alphaTest = def.alphaCutoff === undefined ? 0.5 : def.alphaCutoff; }
     mat.userData.gltfMaterial = def.name || '';

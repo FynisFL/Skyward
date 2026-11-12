@@ -158,7 +158,7 @@ const World = (() => {
   function createWorld(scene, quality) {
     const q = quality || 'med';
     const shadowOn = q === 'high';
-    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [], playerColliders: [] };
+    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [], playerColliders: [], relayMotion: [] };
     
     // Phase 1: surface queries used by player vertical physics.
     function containsPlatform(p, x, z, inset = 0.18) {
@@ -286,10 +286,10 @@ const World = (() => {
     scene.fog = new THREE.Fog(0x829db0, 66, 390);
 
     // ---------- ánh sáng ----------
-    const hemi = new THREE.HemisphereLight(0xb6d9ec, 0x1a2935, 0.82);
+    const hemi = new THREE.HemisphereLight(0xc8eaff, 0x344858, 1.02);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xd7eaff, 1.22);
+    const sun = new THREE.DirectionalLight(0xe5f3ff, 1.48);
     sun.position.set(70, 110, 45);
     if (shadowOn) {
       sun.castShadow = true;
@@ -305,11 +305,11 @@ const World = (() => {
     scene.add(sun.target);
     world.sun = sun;
 
-    const rim = new THREE.DirectionalLight(0x8fc4ff, 0.45);
+    const rim = new THREE.DirectionalLight(0x4bcfff, 0.82);
     rim.position.set(-60, 35, -70);
     scene.add(rim);
 
-    const fill = new THREE.DirectionalLight(0x8de9ff, 0.22);
+    const fill = new THREE.DirectionalLight(0xffc18a, 0.36);
     fill.position.set(-30, 20, 60);
     scene.add(fill);
 
@@ -334,6 +334,9 @@ const World = (() => {
       color: 0xffa54b, emissive: 0xb94b12, emissiveIntensity: 0.85,
       roughness: 0.38, metalness: 0.28
     });
+    hullMat.color.multiplyScalar(1.28);
+    armorMat.color.multiplyScalar(1.18);
+    containerMat.color.multiplyScalar(1.12);
     const darkGlassMat = new THREE.MeshStandardMaterial({
       color: 0x102533, emissive: 0x06374a, emissiveIntensity: 0.42,
       roughness: 0.2, metalness: 0.68
@@ -508,13 +511,36 @@ const World = (() => {
     const core = new THREE.Mesh(new THREE.SphereGeometry(1.45, 20, 16), coreMat);
     core.position.y = 8.8;
     turbine.add(core);
+    const coreRingRig = new THREE.Group();
+    coreRingRig.position.y = 8.8;
     const coreRing = new THREE.Mesh(
       new THREE.TorusGeometry(2.4, 0.16, 8, 40),
       new THREE.MeshStandardMaterial({ color: 0x67dff7, emissive: 0x00a9d6, emissiveIntensity: 1.25, roughness: 0.28, metalness: 0.35 })
     );
     coreRing.rotation.x = Math.PI / 2;
-    coreRing.position.y = 8.8;
-    turbine.add(coreRing);
+    coreRingRig.add(coreRing);
+    turbine.add(coreRingRig);
+
+    const reactorOrbit = new THREE.Group();
+    reactorOrbit.position.y = 8.8;
+    const orbitRing = new THREE.Mesh(new THREE.TorusGeometry(3.15, 0.075, 8, 52), cyanMat);
+    orbitRing.rotation.x = Math.PI / 2;
+    reactorOrbit.add(orbitRing);
+    const orbitNode = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), amberMat);
+    orbitNode.position.set(3.15, 0, 0);
+    reactorOrbit.add(orbitNode);
+    turbine.add(reactorOrbit);
+
+    const reactorBeamMat = new THREE.MeshStandardMaterial({
+      color: 0x3cdcff, emissive: 0x08bce7, emissiveIntensity: 1.15,
+      transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide
+    });
+    const reactorBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 6.4, 16, 1, true), reactorBeamMat);
+    reactorBeam.position.y = 4.9;
+    turbine.add(reactorBeam);
+    const reactorLight = new THREE.PointLight(0x36dfff, q === 'low' ? 0.5 : 1.35, 28, 2);
+    reactorLight.position.y = 8.7;
+    turbine.add(reactorLight);
     const blades = new THREE.Group();
     for (let i = 0; i < 4; i++) {
       const arm = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.18, 0.34), i % 2 ? cyanSoftMat : hullMat);
@@ -533,6 +559,10 @@ const World = (() => {
     world.blades = blades;
     world.core = core;
     world.coreRing = coreRing;
+    world.coreRingRig = coreRingRig;
+    world.reactorOrbit = reactorOrbit;
+    world.reactorBeam = reactorBeam;
+    world.reactorLight = reactorLight;
 
     // ---------- north command hangar ----------
     const arch = new THREE.Group();
@@ -572,15 +602,29 @@ const World = (() => {
     const portal = new THREE.Mesh(new THREE.TorusGeometry(3.25, 0.22, 10, 48), portalMat);
     portal.position.set(0, 4.0, 5.55);
     arch.add(portal);
+    const portalLight = new THREE.PointLight(0x25cfff, q === 'low' ? 0.35 : 0.9, 17, 2);
+    portalLight.position.set(0, 4.2, 7.0);
+    arch.add(portalLight);
+    const hangarScanner = new THREE.Group();
+    hangarScanner.position.set(0, 7.2, 0.2);
+    const scannerArm = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.1, 0.14), cyanMat);
+    hangarScanner.add(scannerArm);
+    const scannerBeacon = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), amberMat);
+    scannerBeacon.position.x = 1.75;
+    hangarScanner.add(scannerBeacon);
+    arch.add(hangarScanner);
     arch.position.set(0, 0, -27);
     arch.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = shadowOn; } });
     scene.add(arch);
     world.portal = portal;
+    world.portalLight = portalLight;
+    world.hangarScanner = hangarScanner;
 
     // ---------- maintenance bay: west ----------
     const props = new THREE.Group();
     props.name = 'Aegis09_Maintenance_And_Cargo';
     scene.add(props);
+    world.gantryTrolley = null;
     const addBox = (w, h, d, mat, x, y, z, ry = 0, solid = true, blocksBullets = true) =>
       addMapBox(props, w, h, d, mat, x, y, z, ry, solid, blocksBullets);
     const addCylinder = (rt, rb, h, mat, x, y, z) =>
@@ -611,6 +655,14 @@ const World = (() => {
     });
     addBox(12.0, 0.48, 0.6, hullMat, 27.2, 7.15, -1.6);
     addBox(0.5, 0.5, 0.5, cyanMat, 27.2, 6.82, -1.6, 0, false, false);
+    const gantryTrolley = new THREE.Group();
+    addMapBox(gantryTrolley, 1.7, 0.48, 0.88, armorMat, 0, 0, 0, 0, false, false);
+    addMapBox(gantryTrolley, 1.22, 0.12, 0.94, cyanMat, 0, -0.08, 0, 0, false, false);
+    addMapBox(gantryTrolley, 0.06, 1.05, 0.06, hullMat, 0, -0.72, 0, 0, false, false);
+    addMapBox(gantryTrolley, 0.52, 0.42, 0.52, amberMat, 0, -1.42, 0, 0, false, false);
+    gantryTrolley.position.set(27.2, 6.9, -1.6);
+    props.add(gantryTrolley);
+    world.gantryTrolley = gantryTrolley;
 
     // Scattered cover is deliberate and leaves broad lanes through the centre.
     addBox(5.8, 1.25, 0.7, hullMat, -12.5, 0.625, 12.5, 0.28);
@@ -706,11 +758,26 @@ const World = (() => {
       const relayCore = new THREE.Mesh(new THREE.OctahedronGeometry(0.65 * d.s, 0), cyanMat);
       relayCore.position.y = 4.0 * d.s;
       g.add(relayCore);
+      const relayRingRig = new THREE.Group();
+      relayRingRig.position.y = -1.2 * d.s;
+      const relayRing = new THREE.Mesh(new THREE.TorusGeometry(4.5 * d.s, 0.085 * d.s, 6, 36), cyanSoftMat);
+      relayRing.rotation.x = Math.PI / 2;
+      relayRingRig.add(relayRing);
+      g.add(relayRingRig);
+      const relayThrusters = [];
       for (let j = 0; j < 3; j++) {
+        const tx = Math.cos(j * Math.PI * 2 / 3) * 2.3 * d.s;
+        const tz = Math.sin(j * Math.PI * 2 / 3) * 2.3 * d.s;
         const thruster = new THREE.Mesh(new THREE.CylinderGeometry(0.38 * d.s, 0.62 * d.s, 1.1 * d.s, 8), darkGlassMat);
-        thruster.position.set(Math.cos(j * Math.PI * 2 / 3) * 2.3 * d.s, -0.9 * d.s, Math.sin(j * Math.PI * 2 / 3) * 2.3 * d.s);
+        thruster.position.set(tx, -0.9 * d.s, tz);
         g.add(thruster);
+        const glowRing = new THREE.Mesh(new THREE.TorusGeometry(0.43 * d.s, 0.055 * d.s, 5, 16), cyanMat);
+        glowRing.rotation.x = Math.PI / 2;
+        glowRing.position.set(tx, -1.45 * d.s, tz);
+        g.add(glowRing);
+        relayThrusters.push(glowRing);
       }
+      world.relayMotion.push({ core: relayCore, ringRig: relayRingRig, thrusters: relayThrusters, phase: i * 0.9 });
       g.position.set(d.x, d.y, d.z);
       g.userData.baseY = d.y;
       g.userData.phase = i * 1.3;
@@ -756,10 +823,10 @@ const World = (() => {
 
     // ---------- mood theo mission ----------
     const moods = {
-      clear: { sky: [0x102538, 0x426a82, 0x91adbc], fog: [0x829db0, 66, 390], sun: 1.22, hemi: 0.82 },
-      squall: { sky: [0x101c2a, 0x2c465b, 0x637e91], fog: [0x627b8c, 38, 250], sun: 0.78, hemi: 0.55 },
-      gale: { sky: [0x1b3e58, 0x5d8eaa, 0xa9c2cf], fog: [0x93afbd, 88, 480], sun: 1.38, hemi: 0.9 },
-      blackout: { sky: [0x080f19, 0x142838, 0x283d4e], fog: [0x344b5c, 32, 205], sun: 0.44, hemi: 0.28 }
+      clear: { sky: [0x102538, 0x426a82, 0x91adbc], fog: [0x829db0, 66, 390], sun: 1.48, hemi: 1.02 },
+      squall: { sky: [0x101c2a, 0x2c465b, 0x637e91], fog: [0x627b8c, 38, 250], sun: 1.08, hemi: 0.78 },
+      gale: { sky: [0x1b3e58, 0x5d8eaa, 0xa9c2cf], fog: [0x93afbd, 88, 480], sun: 1.58, hemi: 1.08 },
+      blackout: { sky: [0x080f19, 0x142838, 0x283d4e], fog: [0x344b5c, 32, 205], sun: 0.82, hemi: 0.62 }
     };
 
     let domeMesh = null;
@@ -788,6 +855,8 @@ const World = (() => {
       scene.fog.far = m.fog[2];
       sun.intensity = m.sun;
       hemi.intensity = m.hemi;
+      rim.intensity = m.sun < 0.9 ? 0.62 : 0.82;
+      fill.intensity = m.sun < 0.9 ? 0.28 : 0.36;
     };
 
     // ---------- gắn nhãn bề mặt để hiệu ứng trúng đạn đúng chất liệu ----------
@@ -851,17 +920,41 @@ const World = (() => {
     world.update = function (dt, reducedMotion) {
       t += dt;
       const k = reducedMotion ? 0.2 : 1;
+      const reactorPulse = 0.5 + 0.5 * Math.sin(t * 2.35);
       blades.rotation.y += dt * 0.42 * k;
-      core.material.emissiveIntensity = 1.35 + Math.sin(t * 2.6) * 0.4;
-      coreRing.rotation.z += dt * 0.8 * k;
-      coreRing.material.emissiveIntensity = 1.4 + Math.sin(t * 2.6) * 0.4;
-      portal.material.emissiveIntensity = 1.0 + Math.sin(t * 1.7) * 0.35;
-      portal.rotation.z += dt * 0.22 * k;
+      core.scale.setScalar(0.96 + reactorPulse * 0.1 * k);
+      core.material.emissiveIntensity = 1.15 + reactorPulse * 1.05;
+      coreRingRig.rotation.y += dt * 0.68 * k;
+      coreRing.material.emissiveIntensity = 0.85 + reactorPulse * 0.95;
+      reactorOrbit.rotation.y -= dt * 0.46 * k;
+      orbitRing.material.emissiveIntensity = 0.55 + reactorPulse * 1.0;
+      orbitNode.rotation.x += dt * 1.2 * k;
+      reactorBeam.scale.y = 0.9 + reactorPulse * 0.18 * k;
+      reactorBeam.material.opacity = 0.10 + reactorPulse * 0.16;
+      reactorLight.intensity = (q === 'low' ? 0.5 : 1.25) * (0.55 + reactorPulse * 0.7);
 
-      islandGroup.children.forEach(g => {
+      portal.material.emissiveIntensity = 0.75 + (0.5 + 0.5 * Math.sin(t * 1.7)) * 0.95;
+      portal.rotation.z += dt * 0.28 * k;
+      portalLight.intensity = (q === 'low' ? 0.35 : 0.9) * (0.58 + 0.42 * Math.sin(t * 1.7 + 0.8));
+      hangarScanner.rotation.y = Math.sin(t * 0.34) * 0.82 * k;
+
+      if (gantryTrolley) {
+        gantryTrolley.position.x = 27.2 + Math.sin(t * 0.42) * 3.4 * k;
+      }
+
+      islandGroup.children.forEach((g, i) => {
         g.position.y = g.userData.baseY + Math.sin(t * g.userData.speed + g.userData.phase) * 1.2 * k;
         g.rotation.y += dt * 0.03 * k;
       });
+      for (let i = 0; i < world.relayMotion.length; i++) {
+        const relay = world.relayMotion[i];
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2.1 + relay.phase);
+        relay.core.scale.setScalar(0.92 + pulse * 0.16 * k);
+        relay.ringRig.rotation.y += dt * (i % 2 ? -0.32 : 0.32) * k;
+        relay.thrusters.forEach((ring, j) => {
+          ring.material.emissiveIntensity = 0.42 + (0.5 + 0.5 * Math.sin(t * 2.7 + relay.phase + j)) * 1.1;
+        });
+      }
 
       // ambient sway hooks for optional environment props
       for (let i = 0; i < world.sway.length; i++) {
@@ -878,13 +971,13 @@ const World = (() => {
 
       for (let i = 0; i < world.blinkers.length; i++) {
         const b = world.blinkers[i];
-        const on = ((t * 1.4 + i * 0.7) % 1) < 0.18;
-        b.userData.light.intensity = on ? 3.2 : 0;
-        b.userData.bulb.material.emissiveIntensity = on ? 3.0 : 0.15;
+        const pulse = Math.pow(Math.max(0, Math.sin(t * 2.2 + i * 1.05)), 8);
+        b.userData.light.intensity = 0.15 + pulse * (q === 'low' ? 1.5 : 3.0);
+        b.userData.bulb.material.emissiveIntensity = 0.28 + pulse * 2.7;
       }
 
       for (let i = 0; i < world.lamps.length; i++) {
-        world.lamps[i].emissiveIntensity = 1.6 + Math.sin(t * 3 + i * 2) * 0.2;
+        world.lamps[i].emissiveIntensity = 1.15 + (0.5 + 0.5 * Math.sin(t * 2.4 + i * 1.4)) * 0.85;
       }
     };
 
