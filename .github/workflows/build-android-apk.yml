@@ -45,6 +45,9 @@ jobs:
       - name: Run Phase 9 benchmark tests
         run: node tools/qa/phase9.test.mjs
 
+      - name: Run Phase 10 Replay v2 tests
+        run: node tools/qa/phase10.test.mjs
+
       - name: Verify web and Android assets are identical
         run: |
           cmp index.html app/src/main/assets/game/index.html
