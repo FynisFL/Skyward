@@ -123,10 +123,13 @@
     // response and makes the assets read as black silhouettes. Use per-atlas
     // material limits while preserving the original maps and emissive masks.
     const materialProfile = {
-      MI_Enemies:       { metalnessCap: 0.12, roughnessFloor: 0.64, albedoLift: 1.42, envIntensity: 1.35 },
-      MI_Enemies_Large: { metalnessCap: 0.12, roughnessFloor: 0.64, albedoLift: 1.48, envIntensity: 1.35 },
-      MI_Guns_Batch1:   { metalnessCap: 0.18, roughnessFloor: 0.60, albedoLift: 1.58, envIntensity: 1.25 },
-      MI_Guns_Batch2:   { metalnessCap: 0.16, roughnessFloor: 0.62, albedoLift: 1.42, envIntensity: 1.25 },
+      // Weapons and enemies use a diffuse-dominant Standard profile. The
+      // Quaternius ORM/normal/environment combination is too dark on the
+      // lightweight WebGL lighting setup, while the Base Color atlas is valid.
+      MI_Enemies:       { stableDiffuse: true, metalnessCap: 0.04, roughnessFloor: 0.78, albedoLift: 1.42 },
+      MI_Enemies_Large: { stableDiffuse: true, metalnessCap: 0.04, roughnessFloor: 0.78, albedoLift: 1.48 },
+      MI_Guns_Batch1:   { stableDiffuse: true, metalnessCap: 0.04, roughnessFloor: 0.78, albedoLift: 1.58 },
+      MI_Guns_Batch2:   { stableDiffuse: true, metalnessCap: 0.04, roughnessFloor: 0.78, albedoLift: 1.42 },
       MI_Props_Batch2:  { metalnessCap: 0.28, roughnessFloor: 0.56, albedoLift: 1.20, envIntensity: 1.30 }
     }[def.name] || null;
     const metalnessCap = materialProfile ? materialProfile.metalnessCap : 0.68;
@@ -139,24 +142,31 @@
       roughness: Math.max(roughnessFloor, Math.min(0.86, pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor)),
       side: def.doubleSided ? THREE.DoubleSide : THREE.FrontSide
     });
-    if (window.SKYWARD_ENV) {
+    const stableDiffuse = !!(materialProfile && materialProfile.stableDiffuse);
+    if (window.SKYWARD_ENV && !stableDiffuse) {
       mat.envMap = window.SKYWARD_ENV;
       mat.envMapIntensity = materialProfile ? materialProfile.envIntensity : 1.25;
     }
     mat.color.multiplyScalar(albedoLift);
     mat.map = textureFor(gltf, pbr.baseColorTexture, true);
-    const orm = textureFor(gltf, pbr.metallicRoughnessTexture, false);
+    const orm = stableDiffuse ? null : textureFor(gltf, pbr.metallicRoughnessTexture, false);
     if (orm) { mat.metalnessMap = orm; mat.roughnessMap = orm; }
-    mat.normalMap = textureFor(gltf, def.normalTexture, false);
-    if (def.normalTexture && def.normalTexture.scale !== undefined) mat.normalScale.setScalar(def.normalTexture.scale);
-    mat.aoMap = textureFor(gltf, def.occlusionTexture, false);
+    mat.normalMap = stableDiffuse ? null : textureFor(gltf, def.normalTexture, false);
+    if (!stableDiffuse && def.normalTexture && def.normalTexture.scale !== undefined) mat.normalScale.setScalar(def.normalTexture.scale);
+    mat.aoMap = stableDiffuse ? null : textureFor(gltf, def.occlusionTexture, false);
     if (mat.aoMap) mat.aoMapIntensity = def.occlusionTexture.strength === undefined ? 1 : def.occlusionTexture.strength;
     mat.emissive = new THREE.Color().setRGB(
       (def.emissiveFactor || [0, 0, 0])[0],
       (def.emissiveFactor || [0, 0, 0])[1],
       (def.emissiveFactor || [0, 0, 0])[2]
     );
-    mat.emissiveMap = textureFor(gltf, def.emissiveTexture, true) || getEmbeddedEmissiveMask(def.name);
+    mat.emissiveMap = stableDiffuse ? null : (textureFor(gltf, def.emissiveTexture, true) || getEmbeddedEmissiveMask(def.name));
+    if (stableDiffuse) {
+      // A restrained self-lit floor keeps dark-facing surfaces readable without
+      // switching to MeshBasicMaterial or removing real scene lighting.
+      mat.emissive.setRGB(0.10, 0.10, 0.10);
+      mat.emissiveIntensity = 0.18;
+    }
     if (mat.emissiveMap && !def.emissiveFactor) {
       if (def.name === 'MI_Props_Batch2') mat.emissive.setRGB(0.34, 1.0, 0.58);
       else if (def.name.indexOf('MI_Guns_') === 0) mat.emissive.setRGB(0.38, 0.78, 1.0);
