@@ -66,15 +66,16 @@ replay.start(42, { mission: 'm1', class: 'c1' });
 replay.beginFrame(0.016);
 replay.endFrame();
 replay.recordInput('key-up', { code: 'KeyW' });
-replay.finish({ abandoned: true });
+replay.recordInput('run-abandon', { abandoned: true, mission: 'm1', wave: 1 });
+replay.finish({ abandoned: true, mission: 'm1', wave: 1 });
 const terminal = replay.getTape();
 replay.load(terminal);
 replay.startPlayback();
 assert.equal(replay.nextFrame().index, 0);
 const boundary = replay.nextFrame();
 assert.equal(boundary.terminal, true);
-assert.deepEqual(replay.drainInputsForFrame(boundary.index).map(x => x.action), ['key-up']);
-assert.equal(replay.nextFrame(), null);
+assert.deepEqual(replay.drainInputsForFrame(boundary.index).map(x => x.action), ['key-up', 'run-abandon']);
+assert.equal(replay.finish({ abandoned: true, mission: 'm1', wave: 1 }).divergences, 0);
 
 // Version 1 tapes remain importable and keep their original semantics contract.
 const legacy = {
