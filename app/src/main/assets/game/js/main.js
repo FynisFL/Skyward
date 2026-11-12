@@ -977,6 +977,7 @@
   function startRound() {
     const playbackTape = replay.isReady() ? replay.getTape() : null;
     replayCheckpointFrame = 0;
+    currentUpgradeOptions = [];
     pendingTouchMoveRecord = null;
     pendingLookX = 0; pendingLookY = 0;
     if (playbackTape) {
@@ -1012,6 +1013,9 @@
       const controls = playbackTape.metadata.controls;
       if (Number.isFinite(Number(controls.sensitivity))) player.sensitivity = Math.max(0.1, Math.min(5, Number(controls.sensitivity)));
       if (typeof controls.invertY === 'boolean') player.invertY = controls.invertY;
+    } else {
+      player.sensitivity = settings.sens;
+      player.invertY = settings.invert;
     }
     weapons.reset();
     if (playbackTape && playbackTape.metadata && ['auto', 'handcannon', 'scout'].indexOf(playbackTape.metadata.weapon) >= 0) {
@@ -1076,6 +1080,8 @@
       events.emit('run:abandoned', { mission: G.mission.id, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
     }
     G.state = 'menu';
+    player.sensitivity = settings.sens;
+    player.invertY = settings.invert;
     triggerDown = false; dragging = false; player.keys.clear();
     player.touchMove.x = 0; player.touchMove.y = 0; weapons.setAiming(false);
     waves.clearAll(); clearPickups(); ui.hideUpgrade(); weapons.reset();
