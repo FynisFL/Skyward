@@ -46,6 +46,19 @@ Verified on runtime commit `f079a64c8a3487eef464109668869b8798de6b8c`.
 
 The Android artifact is named `Skyward-Salvage-Android-APK`, is approximately 18.16 MB, and expires on 26 November 2026.
 
+## Enemy model / hitscan regression fix
+
+The follow-up fix for the reported issue was validated on runtime commit `59c4c552a7229778e145c340b0dbeeb8534842a6`:
+
+- Animated enemy meshes have frustum culling disabled so their render visibility does not depend on rest-pose bounds.
+- Hitscan uses a deterministic ray-sphere fallback only when mesh raycasting produces no live enemy hit. World obstruction ordering is still checked, and actual mesh hits retain priority so Commander reactor weakpoint detection remains intact.
+- [Quality validation including Phase 11 tests — PASS](https://github.com/FynisFL/Skyward/actions/runs/43191807612)
+- [Android QA, mirror parity, APK build and artifact upload — PASS](https://github.com/FynisFL/Skyward/actions/runs/43191807653)
+- [Latest web deployment — PASS](https://github.com/FynisFL/Skyward/actions/runs/43191832353)
+- [Latest GitHub Pages build/deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43191832402)
+
+Android artifact: `Skyward-Salvage-Android-APK`, approximately 18.16 MB, artifact ID `13930727943`, expires 26 November 2026.
+
 ## Manual verification still required
 
 Follow [PHASE_11_QA.md](PHASE_11_QA.md). Test every archetype, mixed squads, Commander phases and reactor exposure on desktop and Android. Record seed, mission, class, weapon, difficulty modifiers and replay divergence status. Verify telegraph legibility at desktop and Android landscape viewport sizes.
