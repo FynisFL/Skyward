@@ -124,8 +124,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 
 ### Trạng thái xác minh
 
-- Phase 7/8/9 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên runtime commit `5469040`.
-- Web deploy, GitHub Pages và Android debug APK build/artifact upload: PASS. Xem [Phase 9 CI evidence](PHASE_9_COMPLETION_REPORT.md#ci-evidence).
+- Phase 7/8/9/10 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên Phase 10 runtime.
+- Web deploy: PASS. Android debug APK build: PASS trên runtime commit `680c26c6`. Xem [Phase 10 CI evidence](PHASE_10_COMPLETION_REPORT.md#ci-evidence).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
 - Replay v2 đã bổ sung touch và platform lifecycle input; cross-device manual playback vẫn cần xác minh.
