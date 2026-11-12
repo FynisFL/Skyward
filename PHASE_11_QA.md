@@ -31,6 +31,11 @@ Move combat beyond enemies that share one orbit-and-fire loop. Each archetype sh
 | II | 30–65% | 3-projectile fan | Faster movement and firing |
 | III | 30% or less | 5-projectile fan | Highest movement and firing pressure |
 
+Commander tuning is centralized in `SkywardCombatAI.getCommanderTuning()` and covered by deterministic tests:
+- Phase I: move speed 1.9, fire-rate interval 1.2, core scale 1.0.
+- Phase II: move speed 2.3, fire-rate interval 0.94, core scale 1.25.
+- Phase III: move speed 2.8, fire-rate interval 0.76, core scale 1.5.
+
 After each volley, the reactor is exposed for 1.15 seconds. Shots to the closed reactor deal normal weapon damage; shots during exposure receive a 2.5× multiplier. The boss can also be staggered by focused damage during its telegraph.
 
 ## Weapon and hit feedback
