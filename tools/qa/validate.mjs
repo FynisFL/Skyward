@@ -185,7 +185,7 @@ check('Phase 11 role-based combat AI is loaded and mirrored', () => {
   assert.ok(html.includes('js/combat_ai.js'));
   assert.ok(html.indexOf('js/combat_ai.js') < html.indexOf('js/enemies.js'));
   assert.equal(read('app/src/main/assets/game/js/combat_ai.js'), combatAI);
-  for (const token of ['ranged-support', 'flanker', 'frontline-disruptor', 'commander', 'getCommanderTuning']) {
+  for (const token of ['ranged-support', 'flanker', 'frontline-disruptor', 'commander', 'getCommanderTuning', 'isWithinVerticalTolerance']) {
     assert.ok(combatAI.includes(token), 'Missing enemy combat role: ' + token);
   }
   for (const token of ['_beginTelegraph', 'enemy:telegraph', 'enemy:staggered', 'enemy:phase', 'isWeakpointExposed']) {
