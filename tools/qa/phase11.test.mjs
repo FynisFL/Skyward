@@ -28,6 +28,8 @@ assert.equal(ai.isInChargeWindow(15.6, speeder), false);
 assert.equal(ai.isInsideRadialAttack(0, 0, 3, 0, 3.55), true);
 assert.equal(ai.isInsideRadialAttack(0, 0, 3.56, 0, 3.55), false);
 assert.equal(ai.isInsideRadialAttack(0, 0, 0, 0, 0), true);
+assert.equal(ai.isInsideRadialAttack(0, 0, 0, 0, 3.55, 0, 2.2, 1.75), false);
+assert.equal(ai.isInsideRadialAttack(0, 0, 3, 0, 3.55, 0, 1.6, 1.75), true);
 assert.equal(ai.isInsideRadialAttack(0, 0, NaN, 0, 3), false);
 
 // Focus fire during a tell can interrupt an attack, while damage below threshold accumulates.
