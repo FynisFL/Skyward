@@ -39,6 +39,7 @@
       attack: 'ground-slam',
       slamRange: 8.6,
       slamRadius: 3.55,
+      slamHeightTolerance: 1.75,
       windup: 0.96,
       damage: 23,
       cooldown: 4.7,
@@ -85,11 +86,13 @@
       distance <= p.chargeMaxRange;
   }
 
-  function isInsideRadialAttack(targetX, targetZ, playerX, playerZ, radius) {
+  function isInsideRadialAttack(targetX, targetZ, playerX, playerZ, radius, targetY, playerY, heightTolerance) {
     const dx = Number(playerX) - Number(targetX);
     const dz = Number(playerZ) - Number(targetZ);
     const r = Number(radius);
     if (![dx, dz, r].every(Number.isFinite) || r < 0) return false;
+    if (Number.isFinite(Number(targetY)) && Number.isFinite(Number(playerY)) &&
+        Math.abs(Number(playerY) - Number(targetY)) > Math.max(0, Number(heightTolerance) || 0)) return false;
     return dx * dx + dz * dz <= r * r;
   }
 
