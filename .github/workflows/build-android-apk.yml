@@ -10,6 +10,8 @@ on:
       - "build.gradle"
       - "gradle.properties"
       - ".github/workflows/build-android-apk.yml"
+      - "tools/qa/**"
+      - "PHASE_9_*.md"
       - "index.html"
       - "css/**"
       - "js/**"
@@ -40,6 +42,9 @@ jobs:
         run: node tools/qa/validate.mjs
       - name: Run Phase 8 adaptive performance tests
         run: node tools/qa/phase8.test.mjs
+
+      - name: Run Phase 9 benchmark tests
+        run: node tools/qa/phase9.test.mjs
 
       - name: Verify web and Android assets are identical
         run: |
