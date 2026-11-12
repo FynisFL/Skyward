@@ -158,7 +158,7 @@ const World = (() => {
   function createWorld(scene, quality) {
     const q = quality || 'med';
     const shadowOn = q === 'high';
-    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [] };
+    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [], playerColliders: [] };
     
     // Phase 1: surface queries used by player vertical physics.
     function containsPlatform(p, x, z, inset = 0.18) {
@@ -207,6 +207,44 @@ const World = (() => {
     world.sampleGroundHeight = function (x, z) {
       return this.getSpawnHeight(x, z);
     };
+
+    // Phase 2: player-solid colliders are independent from walkable surfaces.
+    function isObjectVisible(object) {
+      for (let node = object; node; node = node.parent) {
+        if (node.visible === false) return false;
+      }
+      return true;
+    }
+
+    world.isPlayerBlocked = function (x, z, feetY, bodyHeight = 1.62, radius = 0.36, stepUp = 0) {
+      const bodyMinY = feetY + 0.04;
+      const bodyMaxY = feetY + bodyHeight;
+      for (let i = 0; i < this.playerColliders.length; i++) {
+        const c = this.playerColliders[i];
+        if (c.object && !isObjectVisible(c.object)) continue;
+        if (bodyMaxY <= c.minY + 0.02 || bodyMinY >= c.maxY - 0.02) continue;
+
+        if (c.isPlatform) {
+          const rise = c.maxY - feetY;
+          if (rise >= -0.05 && rise <= stepUp + 1e-4) continue;
+          if (feetY >= c.maxY - 0.06) continue;
+        }
+
+        const dx = x - c.x;
+        const dz = z - c.z;
+        const cos = Math.cos(c.yaw);
+        const sin = Math.sin(c.yaw);
+        const localX = cos * dx - sin * dz;
+        const localZ = sin * dx + cos * dz;
+        const closestX = Math.max(-c.halfX, Math.min(c.halfX, localX));
+        const closestZ = Math.max(-c.halfZ, Math.min(c.halfZ, localZ));
+        const distanceX = localX - closestX;
+        const distanceZ = localZ - closestZ;
+        if (distanceX * distanceX + distanceZ * distanceZ < radius * radius) return true;
+      }
+      return false;
+    };
+
 
 
     scene.add(makeSkyDome());
@@ -371,9 +409,9 @@ const World = (() => {
     const archMat = Tex.mat('stone', { rx: 3, ry: 3, roughness: 0.95, metalness: 0.04, bumpScale: 0.03 });
     const arch = new THREE.Group();
     const pillarGeo = new THREE.BoxGeometry(2.6, 18, 2.6);
-    const p1 = new THREE.Mesh(pillarGeo, archMat); p1.position.set(-7.2, 9, 0);
-    const p2 = new THREE.Mesh(pillarGeo, archMat); p2.position.set(7.2, 9, 0);
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 2.8, 3.2), archMat); beam.position.y = 19.4;
+    const p1 = new THREE.Mesh(pillarGeo, archMat); p1.position.set(-7.2, 9, 0); p1.userData.playerSolid = true;
+    const p2 = new THREE.Mesh(pillarGeo, archMat); p2.position.set(7.2, 9, 0); p2.userData.playerSolid = true;
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(20, 2.8, 3.2), archMat); beam.position.y = 19.4; beam.userData.playerSolid = true;
     arch.add(p1, p2, beam);
     const portalMat = new THREE.MeshStandardMaterial({
       color: 0x8fd0ff, emissive: 0x3f9fdf, emissiveIntensity: 1.2, transparent: true, opacity: 0.72,
@@ -396,12 +434,12 @@ const World = (() => {
     const outpostAccent = new THREE.MeshStandardMaterial({ color: 0xc24c42, emissive: 0x5c1518, emissiveIntensity: 0.8, metalness: 0.35 });
     const barricadeGeo = new THREE.BoxGeometry(6.2, 1.25, 0.72);
     [[-24,-14,0.18],[24,-14,-0.18],[-24,15,-0.18],[24,15,0.18],[0,27,Math.PI/2],[0,-27,Math.PI/2]].forEach((p, i) => {
-      const base = new THREE.Mesh(barricadeGeo, outpostMetal); base.position.set(p[0], 0.72, p[1]); base.rotation.y = p[2]; base.userData.blocksBullets = true; outpost.add(base);
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.16, 0.78), outpostAccent); stripe.position.set(p[0], 1.28, p[1]); stripe.rotation.y = p[2]; stripe.userData.blocksBullets = true; outpost.add(stripe);
+      const base = new THREE.Mesh(barricadeGeo, outpostMetal); base.position.set(p[0], 0.72, p[1]); base.rotation.y = p[2]; base.userData.blocksBullets = true; base.userData.playerSolid = true; outpost.add(base);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.16, 0.78), outpostAccent); stripe.position.set(p[0], 1.28, p[1]); stripe.rotation.y = p[2]; stripe.userData.blocksBullets = true; stripe.userData.playerSolid = true; outpost.add(stripe);
     });
     [[-33,-24],[33,-24],[-33,24],[33,24]].forEach((p, i) => {
       const tower = new THREE.Group();
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.38,7.5,8), outpostMetal); mast.position.y = 3.75; mast.userData.blocksBullets = true; tower.add(mast);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.38,7.5,8), outpostMetal); mast.position.y = 3.75; mast.userData.blocksBullets = true; mast.userData.playerSolid = true; tower.add(mast);
       const beaconMat = new THREE.MeshStandardMaterial({ color: 0xff5d67, emissive: 0xff263b, emissiveIntensity: 1.3 });
       const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.42,10,8), beaconMat); beacon.position.y = 7.7; tower.add(beacon);
       const beaconLight = new THREE.PointLight(0xff5d67, 0, 18); beaconLight.position.y = 7.75; tower.add(beaconLight);
@@ -530,6 +568,7 @@ const World = (() => {
       if (ry) m.rotation.y = ry;
       m.castShadow = shadowOn;
       m.receiveShadow = true;
+      m.userData.playerSolid = true;
       props.add(m);
       return m;
     }
@@ -576,6 +615,7 @@ const World = (() => {
       m.position.set(b[0], b[1], b[2]);
       m.castShadow = shadowOn;
       m.receiveShadow = true;
+      m.userData.playerSolid = true;
       props.add(m);
     });
 
@@ -602,15 +642,17 @@ const World = (() => {
     fenceDefs.forEach(f => {
       for (let i = 0; i < 4; i++) {
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.5, 0.16), rimMat);
-        post.position.set(f[0] + i * 2.0 * Math.cos(f[3]), 0.75, f[1] + i * 2.0 * Math.sin(f[3]));
+        post.position.set(f[0] + i * 2.0 * Math.cos(f[2]), 0.75, f[1] + i * 2.0 * Math.sin(f[2]));
         post.castShadow = shadowOn;
+        post.userData.playerSolid = true;
         props.add(post);
       }
       for (let k = 0; k < 2; k++) {
         const rail = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.1, 0.12), rimMat);
-        rail.position.set(f[0] + 3.0 * Math.cos(f[3]), 0.6 + k * 0.6, f[1] + 3.0 * Math.sin(f[3]));
-        rail.rotation.y = -f[3];
+        rail.position.set(f[0] + 3.0 * Math.cos(f[2]), 0.6 + k * 0.6, f[1] + 3.0 * Math.sin(f[2]));
+        rail.rotation.y = -f[2];
         rail.castShadow = shadowOn;
+        rail.userData.playerSolid = true;
         props.add(rail);
       }
     });
@@ -738,6 +780,38 @@ const World = (() => {
       if (!o.isMesh) return;
       const texName = o.material && o.material.userData ? o.material.userData.tex : null;
       if (texName) o.userData.surface = SURFACE_FROM_TEX[texName] || 'concrete';
+    });
+
+
+    // Register only explicitly solid geometry after all map objects are constructed.
+    // OBB X/Z extents preserve object yaw; world AABB provides vertical min/max.
+    scene.updateMatrixWorld(true);
+    scene.traverse(o => {
+      if (!o.isMesh || !(o.userData.playerSolid === true || o.userData.blocksBullets === true)) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const localBox = o.geometry.boundingBox;
+      if (!localBox) return;
+      const localSize = localBox.getSize(new THREE.Vector3());
+      const worldScale = o.getWorldScale(new THREE.Vector3());
+      const worldRotation = o.getWorldQuaternion(new THREE.Quaternion());
+      const worldBounds = new THREE.Box3().setFromObject(o);
+      const worldCenter = new THREE.Vector3();
+      worldBounds.getCenter(worldCenter);
+      const yaw = Math.atan2(
+        2 * (worldRotation.w * worldRotation.y + worldRotation.x * worldRotation.z),
+        1 - 2 * (worldRotation.y * worldRotation.y + worldRotation.x * worldRotation.x)
+      );
+      world.playerColliders.push({
+        object: o,
+        x: worldCenter.x,
+        z: worldCenter.z,
+        yaw: yaw,
+        halfX: Math.max(0.01, localSize.x * Math.abs(worldScale.x) * 0.5),
+        halfZ: Math.max(0.01, localSize.z * Math.abs(worldScale.z) * 0.5),
+        minY: worldBounds.min.y,
+        maxY: worldBounds.max.y,
+        isPlatform: o.userData.platform === true
+      });
     });
 
     // ---------- animation ----------

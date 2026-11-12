@@ -26,6 +26,8 @@ class Player {
     this.jumpVelocity = 10.5;
     this.maxStepUp = 0.45;
     this.maxStepDown = 0.55;
+    this.collisionRadius = 0.36;
+    this.collisionHeight = 1.62;
 
     this.maxHealth = Math.round(100 * this.mods.maxHp);
     this.health = this.maxHealth;
@@ -151,21 +153,39 @@ class Player {
       this.dashTime -= dt;
     }
 
-    const nextX = this.pos.x + move.x * dt;
-    const nextZ = this.pos.z + move.z * dt;
-    const targetPos = new THREE.Vector3(nextX, this.pos.y, nextZ);
-
-    const d = Math.hypot(targetPos.x, targetPos.z);
-    if (d > bounds) {
-      targetPos.x *= bounds / d;
-      targetPos.z *= bounds / d;
-    }
-
-    // Keep feet height independent from horizontal movement. Vertical motion is
-    // integrated once per frame; walking onto a platform cannot teleport Y.
+    // Keep feet height independent from horizontal movement. Resolve X then Z
+    // independently so blocked movement can slide along the wall.
     const previousFeetY = this.pos.y - this.eyeHeight;
-    this.pos.x = targetPos.x;
-    this.pos.z = targetPos.z;
+    const canOccupy = (x, z) => {
+      const distance = Math.hypot(x, z);
+      if (distance > bounds) {
+        const scale = bounds / distance;
+        x *= scale;
+        z *= scale;
+      }
+      if (world && typeof world.isPlayerBlocked === 'function' &&
+          world.isPlayerBlocked(x, z, previousFeetY, this.collisionHeight, this.collisionRadius,
+            this.onGround ? this.maxStepUp : 0)) return null;
+      return { x, z };
+    };
+    const sweepAxis = (axis, delta) => {
+      if (!delta) return;
+      // Small substeps prevent fast dash movement tunnelling through thin barriers.
+      const maxSubstep = Math.max(0.1, this.collisionRadius * 0.45);
+      const steps = Math.max(1, Math.ceil(Math.abs(delta) / maxSubstep));
+      const step = delta / steps;
+      for (let i = 0; i < steps; i++) {
+        const candidate = canOccupy(
+          this.pos.x + (axis === 'x' ? step : 0),
+          this.pos.z + (axis === 'z' ? step : 0)
+        );
+        if (!candidate) break;
+        this.pos.x = candidate.x;
+        this.pos.z = candidate.z;
+      }
+    };
+    sweepAxis('x', move.x * dt);
+    sweepAxis('z', move.z * dt);
 
     const getWalkableHeight = world && typeof world.getWalkableHeight === 'function'
       ? world.getWalkableHeight.bind(world)
