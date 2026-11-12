@@ -86,6 +86,17 @@ assert.equal(step.index, 1);
 assert.equal(step.dt, 1 / 30);
 assert.deepEqual(replay.drainInputsForFrame(1).map((input) => input.action), ['look']);
 events.emit('wave:completed', { wave: 1 });
-assert.equal(replay.finish().divergences, 0, 'Expected replay event trace to match');
+assert.equal(replay.finish(tape.outcome).divergences, 0, 'Expected replay events and final outcome to match');
+
+// Final run outcome mismatches must be detected even when the event tape is empty.
+replay.start(99, { mission: 'test-mission', class: 'test-class' });
+replay.beginFrame(0.01);
+replay.endFrame();
+replay.finish({ victory: true, score: 50 });
+const mismatchTape = replay.getTape();
+replay.load(mismatchTape);
+replay.startPlayback();
+replay.nextFrame();
+assert.equal(replay.finish({ victory: false, score: 0 }).divergences, 1, 'Final outcome mismatch must be reported');
 
 console.log('Phase 7 tests: PASS (RNG, isolation, snapshots, event bus, replay)');
