@@ -127,6 +127,30 @@ check('Phase 8 adaptive performance tests pass', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
+check('Phase 9 runtime benchmark is loaded and exposed', () => {
+  assert.ok(exists('js/benchmark.js'));
+  assert.ok(html.includes('js/benchmark.js'));
+  assert.ok(html.indexOf('js/benchmark.js') < html.indexOf('js/main.js'));
+  assert.ok(read('app/src/main/assets/game/js/benchmark.js') === read('js/benchmark.js'));
+  for (const token of ['SkywardBenchmark', 'createRecorder', 'benchmarkRecorder.sample', 'benchmark: benchmarkApi', 'exportJSON']) {
+    assert.ok((read('js/benchmark.js') + main).includes(token), 'Missing Phase 9 benchmark contract: ' + token);
+  }
+  for (const token of ['fps:', 'p50:', 'p95:', 'p99:', 'drawCalls:', 'renderScale:', 'adaptiveFps:']) {
+    assert.ok(main.includes(token), 'Missing performance snapshot metric: ' + token);
+  }
+});
+
+check('Phase 9 browser and Android lifecycle hooks remain wired', () => {
+  for (const token of ["document.addEventListener('visibilitychange'", "window.addEventListener('pagehide'", "skyward-native-pause", "skyward-native-resume", "webglcontextlost", "webglcontextrestored", "benchmarkRecorder.stop"]) {
+    assert.ok(main.includes(token), 'Missing lifecycle hook: ' + token);
+  }
+});
+
+check('Phase 9 benchmark unit tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase9.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
