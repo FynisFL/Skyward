@@ -101,6 +101,7 @@
       roughness: pbr.roughnessFactor === undefined ? 1 : pbr.roughnessFactor,
       side: def.doubleSided ? THREE.DoubleSide : THREE.FrontSide
     });
+    if (window.SKYWARD_ENV) { mat.envMap = window.SKYWARD_ENV; mat.envMapIntensity = 0.9; }
     mat.map = textureFor(gltf, pbr.baseColorTexture, true);
     const orm = textureFor(gltf, pbr.metallicRoughnessTexture, false);
     if (orm) { mat.metalnessMap = orm; mat.roughnessMap = orm; }
