@@ -114,6 +114,7 @@ Yêu cầu Node.js 20 trở lên. Chạy từ thư mục gốc repository:
 ```bash
 node tools/qa/phase7.test.mjs
 node tools/qa/phase8.test.mjs
+node tools/qa/phase9.test.mjs
 node tools/qa/validate.mjs
 find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
@@ -122,7 +123,7 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 
 ### Trạng thái xác minh
 
-- Automated source tests, repository validator, Web/Android mirror checks và Android debug APK build: đã được CI xác nhận PASS trên commit `388af719`.
+- Automated source tests và repository validator đã PASS trên commit `95431c4`; Phase 9 có benchmark unit-test và CI gate riêng, trạng thái được ghi ở [Phase 9 Completion Report](PHASE_9_COMPLETION_REPORT.md).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
 - Replay hiện ghi nhận keyboard/mouse; touch input và platform lifecycle chưa được bao phủ đầy đủ.
@@ -138,6 +139,23 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 | [PHASE_7_COMPLETION_REPORT.md](PHASE_7_COMPLETION_REPORT.md) | Kết quả triển khai Phase 7 |
 | [PHASE_8_QA.md](PHASE_8_QA.md) | Adaptive rendering và cross-platform QA |
 | [PHASE_8_COMPLETION_REPORT.md](PHASE_8_COMPLETION_REPORT.md) | Kết quả triển khai Phase 8 |
+
+
+## Phase 9 — Runtime QA & Benchmark
+
+Phase 9 adds a browser-console benchmark recorder. After the game initializes, use:
+
+```js
+window.__SKYWARD__.benchmark.start({ scenario: 'typical-combat', trial: 1 });
+```
+
+After at least 30–60 seconds:
+
+```js
+copy(window.__SKYWARD__.benchmark.export());
+```
+
+The recorder exports FPS/frame-time percentiles, draw calls, triangles, geometry/texture counts, particles, decals, enemies, render scale and adaptive FPS. See [PHASE_9_QA.md](PHASE_9_QA.md) for the benchmark matrix and manual regression checklist. Automated CI does not replace physical browser/Android testing.
 
 ## Lưu dữ liệu
 
