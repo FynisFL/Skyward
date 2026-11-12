@@ -189,8 +189,9 @@ const World = (() => {
       const dx = x - ramp.x, dz = z - ramp.z;
       const c = Math.cos(ramp.yaw), s = Math.sin(ramp.yaw);
       const lx = c * dx - s * dz, lz = s * dx + c * dz;
-      return Math.abs(lx) <= ramp.width * 0.5 - inset &&
-        Math.abs(lz) <= ramp.length * 0.5 - inset;
+      return ramp.axis === 'x'
+        ? Math.abs(lx) <= ramp.length * 0.5 - inset && Math.abs(lz) <= ramp.width * 0.5 - inset
+        : Math.abs(lx) <= ramp.width * 0.5 - inset && Math.abs(lz) <= ramp.length * 0.5 - inset;
     }
 
     function rampHeightAt(ramp, x, z) {
@@ -491,7 +492,10 @@ const World = (() => {
       const angle = Math.atan2(Math.abs(rise), length) * Math.sign(
         axis === 'z' ? rise : rise * Math.sign(def.toX - def.fromX)
       );
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(def.width, 0.22, length), def.material || armorMat);
+      const rampGeometry = axis === 'x'
+        ? new THREE.BoxGeometry(length, 0.22, def.width)
+        : new THREE.BoxGeometry(def.width, 0.22, length);
+      const mesh = new THREE.Mesh(rampGeometry, def.material || armorMat);
       mesh.position.set((def.fromX + def.toX) * 0.5, (def.fromY + def.toY) * 0.5, (def.fromZ + def.toZ) * 0.5);
       if (axis === 'z') mesh.rotation.x = angle;
       else mesh.rotation.z = angle;
