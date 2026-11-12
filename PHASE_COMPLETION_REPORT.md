@@ -1,7 +1,8 @@
-# SKYWARD SALVAGE — Báo cáo hoàn thành các Phase
+# SKYWARD SALVAGE — Báo cáo hoàn thành Phase 0–5
 
-**Bản phát hành:** Final Build
-**Ngày đóng gói:** 11/11/2026
+> **Phạm vi tài liệu:** báo cáo này chỉ ghi nhận các hạng mục Phase 0–5. Các giai đoạn sau được tách thành tài liệu riêng: [Phase 6 QA](PHASE_6_QA.md), [Phase 7 QA](PHASE_7_QA.md), [Phase 7 Completion Report](PHASE_7_COMPLETION_REPORT.md), [Phase 8 QA](PHASE_8_QA.md) và [Phase 8 Completion Report](PHASE_8_COMPLETION_REPORT.md).
+
+**Bản phát hành tại thời điểm báo cáo:** 11/11/2026
 **Kiến trúc được giữ lại:** Three.js r128 local + Vanilla JavaScript + HTML/CSS + Canvas/WebAudio.
 
 ## 1. Tổng quan
