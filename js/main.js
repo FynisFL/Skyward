@@ -345,7 +345,8 @@
   function updatePickups(dt) {
     for (let i = pickups.length - 1; i >= 0; i--) {
       const d = pickups[i]; d.life -= dt; d.mesh.rotation.y += dt * 1.7;
-      d.mesh.position.y = d.mesh.userData.baseY + Math.sin(performance.now() * 0.002 + d.mesh.userData.phase) * 0.18;
+      const pickupAge = Math.max(0, 18 - d.life);
+      d.mesh.position.y = d.mesh.userData.baseY + Math.sin(pickupAge * 1.7 + d.mesh.userData.phase) * 0.18;
       const distance = d.mesh.position.distanceTo(player.pos);
       if (distance < 2.25) {
         if (d.type === 'health' || d.type === 'both') player.heal(d.type === 'both' ? 40 : 28);
@@ -428,11 +429,41 @@
   let triggerDown = false;
   let dragging = false;
   let locked = false;
-  function recordInput(action, data) { if (replay.isRecording()) replay.recordInput(action, data || {}); }
+  let pendingTouchMoveRecord = null;
+  let replayCheckpointFrame = 0;
+
+  function recordInput(action, data) {
+    if (replay.isRecording()) return replay.recordInput(action, data || {});
+    return false;
+  }
+
+  function applyTouchAction(action, pressed) {
+    if (pressed) {
+      if (action === 'sprint') player.keys.add('ShiftLeft');
+      else if (action === 'fire') triggerDown = true;
+      else if (action === 'aim') weapons.setAiming(true);
+      else if (action === 'jump' && player.onGround && !player.dead) {
+        player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump();
+      } else if (action === 'reload') weapons.startReload();
+      else if (action === 'dash') { if (player.tryDash()) Sound.dash(); }
+      else if (action === 'grenade') weapons.throwGrenade();
+      else if (action === 'strike') weapons.callSuper();
+      else if (action === 'cycle') weapons.cycle(1);
+    } else {
+      if (action === 'sprint') player.keys.delete('ShiftLeft');
+      else if (action === 'fire') triggerDown = false;
+      else if (action === 'aim') weapons.setAiming(false);
+    }
+  }
+
   function applyReplayInput(input) {
     const data = input.data || {};
-    if (input.action === 'key-down') {
-      const code = data.code; if (!code) return; player.keys.add(code);
+    const action = input.action;
+    const replayVersion = replay.status().version || 1;
+    if (action === 'key-down') {
+      const code = data.code;
+      if (!code) return;
+      if (!(replayVersion >= 2 && G.state === 'paused' && code === 'KeyP')) player.keys.add(code);
       if (code === 'KeyR') weapons.startReload();
       else if (code === 'KeyX') weapons.inspect();
       else if (code === 'KeyQ') { if (player.tryDash()) { Sound.dash(); particles.burst(player.pos.clone(), { count: 16, color: [0.5, 0.8, 1], speed: 5, life: 0.4, gravity: 1 }); } }
@@ -441,17 +472,41 @@
       else if (code === 'Digit1') weapons.switchWeapon('auto');
       else if (code === 'Digit2') weapons.switchWeapon('handcannon');
       else if (code === 'Digit3') weapons.switchWeapon('scout');
-      else if (code === 'KeyP') { if (G.state === 'playing') pauseGame(); else if (G.state === 'paused') resumeGame(); }
-      else if (code === 'Space' && player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); }
-    } else if (input.action === 'key-up') { if (data.code) player.keys.delete(data.code); }
-    else if (input.action === 'look') player.look(Number(data.dx) || 0, Number(data.dy) || 0);
-    else if (input.action === 'mouse-down') { if (data.button === 0) { triggerDown = true; dragging = true; } else if (data.button === 2) weapons.setAiming(true); }
-    else if (input.action === 'mouse-up') { if (data.button === 0) { triggerDown = false; dragging = false; } else if (data.button === 2) weapons.setAiming(false); }
+      else if (code === 'KeyP' && replayVersion === 1) {
+        if (G.state === 'playing') pauseGame('legacy-keyboard');
+        else if (G.state === 'paused') resumeGame('legacy-keyboard');
+      } else if (code === 'Space' && player.onGround && !player.dead) {
+        player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump();
+      }
+    } else if (action === 'key-up') {
+      if (data.code) player.keys.delete(data.code);
+    } else if (action === 'look') {
+      player.look(Number(data.dx) || 0, Number(data.dy) || 0);
+    } else if (action === 'mouse-down') {
+      if (data.button === 0) { triggerDown = true; dragging = true; }
+      else if (data.button === 2) weapons.setAiming(true);
+    } else if (action === 'mouse-up') {
+      if (data.button === 0) { triggerDown = false; dragging = false; }
+      else if (data.button === 2) weapons.setAiming(false);
+    } else if (action === 'touch-move') {
+      player.touchMove.x = Math.max(-1, Math.min(1, Number(data.x) || 0));
+      player.touchMove.y = Math.max(-1, Math.min(1, Number(data.y) || 0));
+    } else if (action === 'touch-action-down') {
+      applyTouchAction(data.action, true);
+    } else if (action === 'touch-action-up') {
+      applyTouchAction(data.action, false);
+    } else if (action === 'game-pause') {
+      pauseGame(data.source || 'replay');
+    } else if (action === 'game-resume') {
+      resumeGame(data.source || 'replay');
+    }
   }
+
   function playReplay(input) {
     const tape = replay.load(input), meta = tape.metadata || {};
     if (!MISSIONS.some(item => item.id === meta.mission)) throw new Error('Replay references an unknown mission');
     if (!CLASSES.some(item => item.id === meta.class)) throw new Error('Replay references an unknown class');
+    if (meta.weapon && ['auto', 'handcannon', 'scout'].indexOf(meta.weapon) < 0) throw new Error('Replay references an unknown weapon');
     if (G.state !== 'menu') toMenu();
     G.mission = MISSIONS.find(item => item.id === meta.mission);
     G.cls = CLASSES.find(item => item.id === meta.class);
@@ -461,7 +516,7 @@
   document.addEventListener('pointerlockchange', () => {
     locked = document.pointerLockElement === canvas;
     lockHint();
-    if (!locked && G.state === 'playing' && !touchCapable) pauseGame();
+    if (!locked && G.state === 'playing' && !touchCapable && !replay.isPlaying()) pauseGame('pointer-lock-lost');
   });
 
   document.addEventListener('mousemove', (e) => {
@@ -501,6 +556,7 @@
 
     if (G.state === 'playing') {
       if (!e.repeat) recordInput('key-down', { code: e.code });
+      player.keys.add(e.code);
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].indexOf(e.code) >= 0) e.preventDefault();
       if (!e.repeat) {
         if (e.code === 'KeyR') weapons.startReload();
@@ -512,12 +568,11 @@
         else if (e.code === 'Digit2') weapons.switchWeapon('handcannon');
         else if (e.code === 'Digit3') weapons.switchWeapon('scout');
         else if (e.code === 'Space') { if (player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); } }
-        else if (e.code === 'KeyP') pauseGame();
+        else if (e.code === 'KeyP') pauseGame('keyboard');
       }
-      player.keys.add(e.code);
     } else if (G.state === 'paused' && e.code === 'KeyP') {
       recordInput('key-down', { code: e.code });
-      resumeGame();
+      resumeGame('keyboard');
     }
   });
 
@@ -528,40 +583,46 @@
   });
 
   window.addEventListener('blur', () => {
+    if (replay.isPlaying()) return;
     releaseAllInputs();
-    if (G.state === 'playing') pauseGame();
+    if (G.state === 'playing') pauseGame('window-blur');
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      if (replay.isPlaying()) return;
       benchmarkRecorder.stop('document-hidden');
       releaseAllInputs();
-      if (G.state === 'playing') pauseGame();
+      if (G.state === 'playing') pauseGame('visibility-hidden');
     }
   });
   window.addEventListener('pagehide', () => {
+    if (replay.isPlaying()) return;
     benchmarkRecorder.stop('pagehide');
     releaseAllInputs();
-    if (G.state === 'playing') pauseGame();
+    if (G.state === 'playing') pauseGame('pagehide');
   });
   window.addEventListener('skyward-native-pause', () => {
+    if (replay.isPlaying()) return;
     benchmarkRecorder.stop('android-native-pause');
     releaseAllInputs();
-    if (G.state === 'playing') pauseGame();
+    if (G.state === 'playing') pauseGame('android-native-pause');
   });
   window.addEventListener('skyward-native-resume', () => {
     resizeGameRenderer();
   });
   window.addEventListener('skyward-native-back', () => {
+    if (replay.isPlaying()) return;
     benchmarkRecorder.stop('android-native-back');
-    if (G.state === 'playing') pauseGame();
+    if (G.state === 'playing') pauseGame('android-native-back');
   });
 
   // Khôi phục WebGL context trên Android; pause ngay khi GPU reset.
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    if (replay.isPlaying()) return;
     benchmarkRecorder.stop('webgl-context-lost');
     releaseAllInputs();
-    if (G.state === 'playing') pauseGame();
+    if (G.state === 'playing') pauseGame('webgl-context-lost');
   });
   canvas.addEventListener('webglcontextrestored', () => { location.reload(); });
 
@@ -756,6 +817,7 @@
   let stickPointer = null, lookPointer = null, lookX = 0, lookY = 0;
   const touchPointerSets = new Map();
   function releaseAllInputs() {
+    pendingTouchMoveRecord = null;
     player.keys.clear();
     triggerDown = false;
     dragging = false;
@@ -790,6 +852,7 @@
     const endStick = (e) => {
       if (e.pointerId !== stickPointer) return;
       stickPointer = null; player.touchMove.x = 0; player.touchMove.y = 0;
+      pendingTouchMoveRecord = { x: 0, y: 0 };
       touchKnob.style.transform = 'translate(-50%,-50%)';
     };
     touchStick.addEventListener('pointerup', endStick);
@@ -799,11 +862,12 @@
     window.addEventListener('pointercancel', endStick);
   }
   function updateStick(e) {
-    if (G.state !== 'playing') { player.touchMove.x = 0; player.touchMove.y = 0; return; }
+    if (G.state !== 'playing' || replay.isPlaying()) { player.touchMove.x = 0; player.touchMove.y = 0; return; }
     const r = touchStick.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     let dx = e.clientX - cx, dy = e.clientY - cy; const max = r.width * 0.34;
     const len = Math.hypot(dx, dy); if (len > max) { dx *= max / len; dy *= max / len; }
     player.touchMove.x = dx / max; player.touchMove.y = dy / max;
+    pendingTouchMoveRecord = { x: player.touchMove.x, y: player.touchMove.y };
     touchKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   }
   // Dedicated look surface: controls and camera gestures never compete for
@@ -811,14 +875,14 @@
   const lookZone = document.getElementById('touch-look-zone');
   if (lookZone) {
     lookZone.addEventListener('pointerdown', (e) => {
-      if (hudEditMode || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || G.state !== 'playing' || lookPointer !== null) return;
+      if (hudEditMode || replay.isPlaying() || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || G.state !== 'playing' || lookPointer !== null) return;
       e.preventDefault();
       lookPointer = e.pointerId; lookX = e.clientX; lookY = e.clientY;
       try { lookZone.setPointerCapture(e.pointerId); } catch (err) {}
       lookZone.classList.add('looking');
     });
     lookZone.addEventListener('pointermove', (e) => {
-      if (e.pointerId !== lookPointer || G.state !== 'playing') return;
+      if (replay.isPlaying() || e.pointerId !== lookPointer || G.state !== 'playing') return;
       e.preventDefault();
       const events = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : null;
       const samples = events && events.length ? events : [e];
@@ -850,31 +914,25 @@
       const activePointers = new Set();
       touchPointerSets.set(btn, activePointers);
       btn.addEventListener('pointerdown', (e) => {
-        if (hudEditMode || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
+        if (hudEditMode || replay.isPlaying() || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
         e.preventDefault();
         activePointers.add(e.pointerId);
         try { btn.setPointerCapture(e.pointerId); } catch (err) {}
         btn.classList.add('pressed');
         if (G.state !== 'playing') return;
-        if (action === 'pause') { pauseGame(); return; }
-        if (action === 'sprint') player.keys.add('ShiftLeft');
-        else if (action === 'fire') triggerDown = true;
-        else if (action === 'aim') weapons.setAiming(true);
-        else if (action === 'jump' && player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); }
-        else if (action === 'reload') weapons.startReload();
-        else if (action === 'dash') { if (player.tryDash()) Sound.dash(); }
-        else if (action === 'grenade') weapons.throwGrenade();
-        else if (action === 'strike') weapons.callSuper();
-        else if (action === 'cycle') weapons.cycle(1);
+        if (action === 'pause') { pauseGame('touch-control'); return; }
+        recordInput('touch-action-down', { action: action });
+        applyTouchAction(action, true);
       });
       const release = (e) => {
         if (!activePointers.has(e.pointerId)) return;
         activePointers.delete(e.pointerId);
         if (activePointers.size) return;
         btn.classList.remove('pressed');
-        if (action === 'fire') triggerDown = false;
-        if (action === 'aim') weapons.setAiming(false);
-        if (action === 'sprint') player.keys.delete('ShiftLeft');
+        if (!replay.isPlaying() && G.state === 'playing') {
+          recordInput('touch-action-up', { action: action });
+          applyTouchAction(action, false);
+        }
       };
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
@@ -898,6 +956,9 @@
   // ---------- máy trạng thái ----------
   function startRound() {
     const playbackTape = replay.isReady() ? replay.getTape() : null;
+    replayCheckpointFrame = 0;
+    pendingTouchMoveRecord = null;
+    pendingLookX = 0; pendingLookY = 0;
     if (playbackTape) {
       const meta = playbackTape.metadata || {};
       const replayMission = MISSIONS.find(item => item.id === meta.mission);
@@ -908,7 +969,16 @@
       replay.startPlayback();
     } else {
       activeRunSeed = rng.reset(configuredSeed === null ? rng.createSeed() : configuredSeed);
-      replay.start(activeRunSeed, { mission: G.mission.id, class: G.cls.id, weapon: weapons.current, input: 'keyboard-mouse', version: 1 });
+      replay.start(activeRunSeed, {
+        mission: G.mission.id,
+        class: G.cls.id,
+        weapon: 'auto',
+        input: 'keyboard-mouse+touch',
+        inputSchema: 2,
+        viewport: { width: Math.round(getViewportSize().width), height: Math.round(getViewportSize().height) },
+        devicePixelRatio: window.devicePixelRatio || 1,
+        touchCapable: !!touchCapable
+      });
     }
     if (hudSetupMode) { hudSetupMode = false; hudSetupBar.classList.add('hidden'); }
     Sound.unlock();
@@ -918,6 +988,9 @@
     ui.el.hud.classList.remove('hidden');
     player.reset(world);
     weapons.reset();
+    if (playbackTape && playbackTape.metadata && ['auto', 'handcannon', 'scout'].indexOf(playbackTape.metadata.weapon) >= 0) {
+      weapons.switchWeapon(playbackTape.metadata.weapon);
+    }
     waves.clearAll(); clearPickups(); ui.hideUpgrade();
     world.setMood(G.mission.mood); if (world.setMap) world.setMap(G.mission.id);
     G.state = 'playing';
@@ -936,7 +1009,7 @@
     ui.syncSelection(G.mission.id, G.cls.id);
     ui.waveBanner('BẮT ĐẦU', G.mission.title.toUpperCase());
     lockHint();
-    if (!touchCapable) canvas.requestPointerLock && canvas.requestPointerLock();
+    if (!touchCapable && !replay.isPlaying()) canvas.requestPointerLock && canvas.requestPointerLock();
   }
 
   function prepareHudSetup() {
@@ -947,8 +1020,9 @@
     hudSetupMode = true; hudSetupBar.classList.remove('hidden'); enterHudEdit(true);
   }
 
-  function pauseGame() {
+  function pauseGame(source) {
     if (G.state !== 'playing') return;
+    recordInput('game-pause', { source: source || 'manual' });
     benchmarkRecorder.stop('game-paused');
     G.state = 'paused';
     events.emit('game:paused', { mission: G.mission.id, wave: G.wave });
@@ -958,13 +1032,14 @@
     lockHint();
   }
 
-  function resumeGame() {
+  function resumeGame(source) {
     if (G.state !== 'paused') return;
+    recordInput('game-resume', { source: source || 'manual' });
     G.state = 'playing';
     events.emit('game:resumed', { mission: G.mission.id, wave: G.wave });
     ui.hideAll();
     lockHint();
-    if (!touchCapable) canvas.requestPointerLock && canvas.requestPointerLock();
+    if (!touchCapable && !replay.isPlaying()) canvas.requestPointerLock && canvas.requestPointerLock();
   }
 
   function toMenu() {
@@ -1147,6 +1222,107 @@
     }
   }
 
+  function replayNumber(value) {
+    return Number.isFinite(Number(value)) ? Math.round(Number(value) * 1000) / 1000 : null;
+  }
+  function replayVector(vector) {
+    return vector ? {
+      x: replayNumber(vector.x),
+      y: replayNumber(vector.y),
+      z: replayNumber(vector.z)
+    } : null;
+  }
+  function getReplayCheckpoint(frameNumber) {
+    const rngState = rng.snapshot();
+    const gameplayStreams = {};
+    ['gameplay', 'ai', 'weapon'].forEach(name => {
+      if (rngState.streams && rngState.streams[name] !== undefined) gameplayStreams[name] = rngState.streams[name];
+    });
+    return {
+      frame: frameNumber,
+      game: {
+        state: G.state,
+        mission: G.mission.id,
+        class: G.cls.id,
+        score: G.score,
+        kills: G.kills,
+        shotsFired: G.shotsFired,
+        shotsHit: G.shotsHit,
+        wave: G.wave,
+        elapsed: replayNumber(G.elapsed),
+        timeLeft: replayNumber(G.timeLeft),
+        combo: G.combo,
+        multiplier: replayNumber(G.multiplier),
+        comboTimer: replayNumber(G.comboTimer),
+        timeScale: replayNumber(G.timeScale),
+        victory: !!G.victory
+      },
+      player: {
+        position: replayVector(player.pos),
+        velocity: replayVector(player.vel),
+        yaw: replayNumber(player.yaw.rotation.y),
+        pitch: replayNumber(player.pitch.rotation.x),
+        health: replayNumber(player.health),
+        maxHealth: replayNumber(player.maxHealth),
+        dead: !!player.dead,
+        onGround: !!player.onGround,
+        keys: Array.from(player.keys).sort(),
+        touchMove: { x: replayNumber(player.touchMove.x), y: replayNumber(player.touchMove.y) },
+        dashCooldown: replayNumber(player.dashCd),
+        dashTime: replayNumber(player.dashTime),
+        grenadeCooldown: replayNumber(player.grenadeCd),
+        superCooldown: replayNumber(player.superCd),
+        mods: Object.assign({}, player.mods)
+      },
+      weapon: {
+        current: weapons.current,
+        ammo: Object.keys(weapons.state).sort().map(key => ({
+          key: key,
+          mag: weapons.state[key].mag,
+          reserve: weapons.state[key].reserve
+        })),
+        cooldown: replayNumber(weapons.cooldown),
+        reloading: replayNumber(weapons.reloading),
+        aiming: !!weapons.aiming,
+        triggerDown: !!triggerDown
+      },
+      waves: {
+        state: waves.state,
+        waveIndex: waves.waveIndex,
+        timer: replayNumber(waves.timer),
+        spawnTimer: replayNumber(waves.spawnTimer),
+        spawnQueue: waves.spawnQueue.slice(),
+        enemies: waves.enemies.map(enemy => ({
+          type: enemy.type,
+          alive: !!enemy.alive,
+          hp: replayNumber(enemy.hp),
+          maxHp: replayNumber(enemy.maxHp),
+          position: replayVector(enemy.group && enemy.group.position),
+          spawnT: replayNumber(enemy.spawnT),
+          time: replayNumber(enemy.t),
+          fireTimer: replayNumber(enemy.fireTimer),
+          strafePhase: replayNumber(enemy.strafePhase),
+          strafeDir: replayNumber(enemy.strafeDir),
+          flinchTime: replayNumber(enemy.flinchT),
+          deathTime: replayNumber(enemy.deathT),
+          projectiles: (enemy.projectiles || []).map(projectile => ({
+            position: replayVector(projectile.mesh && projectile.mesh.position),
+            velocity: replayVector(projectile.vel),
+            life: replayNumber(projectile.life),
+            damage: replayNumber(projectile.damage)
+          }))
+        }))
+      },
+      pickups: pickups.map(pickup => ({
+        type: pickup.type,
+        life: replayNumber(pickup.life),
+        position: replayVector(pickup.mesh && pickup.mesh.position)
+      })),
+      upgrades: offeredUpgradeIds.slice(),
+      rng: { seed: rngState.seed, streams: gameplayStreams }
+    };
+  }
+
   function frame(now) {
     requestAnimationFrame(frame);
     const replaying = replay.isPlaying();
@@ -1157,10 +1333,16 @@
       replayFrame = step;
       replay.drainInputsForFrame(step.index).forEach(applyReplayInput);
     }
+    if (!replaying && G.state === 'playing' && pendingTouchMoveRecord) {
+      recordInput('touch-move', pendingTouchMoveRecord);
+      pendingTouchMoveRecord = null;
+    }
     if (!replaying && G.state === 'playing' && (pendingLookX !== 0 || pendingLookY !== 0)) {
       const dx = pendingLookX, dy = pendingLookY;
       pendingLookX = 0; pendingLookY = 0;
-      player.look(dx * 1.12, dy * 1.12);
+      const lookInput = { dx: dx * 1.12, dy: dy * 1.12, source: 'touch' };
+      recordInput('look', lookInput);
+      player.look(lookInput.dx, lookInput.dy);
     }
     let frameDt = (now - last) / 1000;
     last = now;
@@ -1177,6 +1359,12 @@
     if (replaying && replayFrame) dt = replayFrame.dt;
     if (replay.isRecording()) replay.beginFrame(dt);
     update(dt);
+    if ((replay.isRecording() || replay.isPlaying()) && (replay.status().version || 1) >= 2) {
+      replayCheckpointFrame += 1;
+      if (replayCheckpointFrame % 120 === 0) {
+        events.emit('replay:checkpoint', getReplayCheckpoint(replayCheckpointFrame));
+      }
+    }
     replay.endFrame();
     renderer.render(scene, camera);
     updateDebug(perfDt);
