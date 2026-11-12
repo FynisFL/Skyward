@@ -188,7 +188,7 @@
 
     function report() {
       if (lastReport) return safeClone(lastReport, null);
-      if (!startedAtMs) return null;
+      if (startedAtMs === null) return null;
       return safeClone(buildReport(active ? readNow() : endedAtMs, active ? 'in-progress' : stopReason), null);
     }
 
