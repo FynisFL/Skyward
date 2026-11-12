@@ -114,6 +114,19 @@ check('Phase 7 unit tests pass', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
+check('Phase 8 adaptive performance runtime is loaded', () => {
+  assert.ok(exists('js/performance.js'));
+  assert.ok(html.includes('js/performance.js'));
+  for (const token of ['getDeviceProfile', 'createAdaptiveResolution', 'visualViewport', 'adaptiveResolution.update']) {
+    assert.ok(main.includes(token), 'Missing adaptive-rendering integration: ' + token);
+  }
+});
+
+check('Phase 8 adaptive performance tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase8.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
