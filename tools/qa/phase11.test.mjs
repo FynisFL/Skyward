@@ -23,6 +23,8 @@ assert.equal(ai.isInChargeWindow(5.4, speeder), false);
 assert.equal(ai.isInChargeWindow(5.5, speeder), true);
 assert.equal(ai.isInChargeWindow(13.4, speeder), true);
 assert.equal(ai.isInChargeWindow(13.5, speeder), false);
+assert.equal(ai.isWithinVerticalTolerance(0, 1.5, speeder.chargeHeightTolerance), true);
+assert.equal(ai.isWithinVerticalTolerance(0, 1.76, speeder.chargeHeightTolerance), false);
 
 // Brute ground slam resolves against the position locked at telegraph start.
 assert.equal(ai.isInsideRadialAttack(0, 0, 3, 0, 3.55), true);
