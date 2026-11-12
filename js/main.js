@@ -439,10 +439,28 @@
   });
 
   window.addEventListener('blur', () => {
-    player.keys.clear();
-    triggerDown = false;
-    dragging = false;
-    if (G.state === 'playing' && !touchCapable) pauseGame();
+    releaseAllInputs();
+    if (G.state === 'playing') pauseGame();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      releaseAllInputs();
+      if (G.state === 'playing') pauseGame();
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    releaseAllInputs();
+    if (G.state === 'playing') pauseGame();
+  });
+  window.addEventListener('skyward-native-pause', () => {
+    releaseAllInputs();
+    if (G.state === 'playing') pauseGame();
+  });
+  window.addEventListener('skyward-native-resume', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+  window.addEventListener('skyward-native-back', () => {
+    if (G.state === 'playing') pauseGame();
   });
 
   window.addEventListener('resize', () => {
@@ -617,6 +635,25 @@
   });
 
   let stickPointer = null, lookPointer = null, lookX = 0, lookY = 0;
+  const touchPointerSets = new Map();
+  function releaseAllInputs() {
+    player.keys.clear();
+    triggerDown = false;
+    dragging = false;
+    player.touchMove.x = 0;
+    player.touchMove.y = 0;
+    weapons.setAiming(false);
+    stickPointer = null;
+    lookPointer = null;
+    lookX = 0;
+    lookY = 0;
+    pendingLookX = 0;
+    pendingLookY = 0;
+    touchPointerSets.forEach(set => set.clear());
+    if (touchControls) touchControls.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+    if (touchKnob) touchKnob.style.transform = 'translate(-50%,-50%)';
+    if (lookZone) lookZone.classList.remove('looking');
+  }
   // Accumulate touch-look movement and apply it once per rendered frame.
   // This avoids camera micro-stutter when Android/WebView emits uneven pointermove bursts.
   let pendingLookX = 0, pendingLookY = 0;
@@ -639,6 +676,8 @@
     touchStick.addEventListener('pointerup', endStick);
     touchStick.addEventListener('pointercancel', endStick);
     touchStick.addEventListener('lostpointercapture', endStick);
+    window.addEventListener('pointerup', endStick);
+    window.addEventListener('pointercancel', endStick);
   }
   function updateStick(e) {
     if (G.state !== 'playing') { player.touchMove.x = 0; player.touchMove.y = 0; return; }
@@ -683,11 +722,14 @@
     lookZone.addEventListener('pointerup', endLook);
     lookZone.addEventListener('pointercancel', endLook);
     lookZone.addEventListener('lostpointercapture', endLook);
+    window.addEventListener('pointerup', endLook);
+    window.addEventListener('pointercancel', endLook);
   }
   if (touchControls) {
     touchControls.querySelectorAll('[data-touch]').forEach(btn => {
       const action = btn.dataset.touch;
       const activePointers = new Set();
+      touchPointerSets.set(btn, activePointers);
       btn.addEventListener('pointerdown', (e) => {
         if (hudEditMode || (e.pointerType !== 'touch' && e.pointerType !== 'pen') || activePointers.size) return;
         e.preventDefault();
@@ -775,8 +817,7 @@
   function pauseGame() {
     if (G.state !== 'playing') return;
     G.state = 'paused';
-    triggerDown = false; dragging = false; player.keys.clear();
-    player.touchMove.x = 0; player.touchMove.y = 0; weapons.setAiming(false);
+    releaseAllInputs();
     ui.show('pause', true);
     if (document.exitPointerLock) document.exitPointerLock();
     lockHint();
