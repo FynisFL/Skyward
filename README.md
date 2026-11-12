@@ -23,7 +23,7 @@ Các drop hồi máu/đạn, combo multiplier và lựa chọn nâng cấp chỉ
 ### Combat và progression
 
 - Ba vũ khí: Rifle, Revolver và Sniper.
-- Các loại địch Drone, Speeder, Brute và Commander boss; Commander có reactor weakpoint và các pha hành vi.
+- AI phân vai: Drone giữ lane bắn có telegraph; Speeder flank và charge; Brute áp sát với ground slam; Commander chuyển phase, bắn volley và mở reactor weakpoint theo cửa sổ.
 - Viewmodel vũ khí có sway, recoil, inspect, đổi súng và hiệu ứng nạp đạn.
 - XP, level, achievement và hồ sơ người chơi được lưu bằng `localStorage`.
 - Nâng cấp chiến đấu trong run chỉ tồn tại trong lượt Endless; progression không cộng vĩnh viễn combat stats.
@@ -116,15 +116,16 @@ node tools/qa/phase7.test.mjs
 node tools/qa/phase8.test.mjs
 node tools/qa/phase9.test.mjs
 node tools/qa/phase10.test.mjs
+node tools/qa/phase11.test.mjs
 node tools/qa/validate.mjs
 find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
 
-CI chạy validation, deterministic tests, adaptive-rendering tests và Android APK build. Xem trạng thái tại [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
+CI chạy validation, deterministic tests, adaptive-rendering tests, replay tests, combat AI tests và Android APK build. Xem trạng thái tại [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
 
 ### Trạng thái xác minh
 
-- Phase 7/8/9/10 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên runtime commit `42b65bd1`.
+- Phase 7/8/9/10 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS. Phase 11 automated validation đang được chạy trên commit hiện tại.
 - Web deployment và Android debug APK build/artifact upload: PASS; GitHub Pages build/deploy cũng đã PASS. Xem [Phase 10 CI evidence](PHASE_10_COMPLETION_REPORT.md#ci-evidence).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
@@ -145,6 +146,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 | [PHASE_9_COMPLETION_REPORT.md](PHASE_9_COMPLETION_REPORT.md) | Kết quả triển khai Phase 9 và CI evidence |
 | [PHASE_10_QA.md](PHASE_10_QA.md) | Replay v2 và kiểm thử determinism đa nền tảng |
 | [PHASE_10_COMPLETION_REPORT.md](PHASE_10_COMPLETION_REPORT.md) | Kết quả triển khai Phase 10 |
+| [PHASE_11_QA.md](PHASE_11_QA.md) | Combat depth, enemy roles, telegraphs, stagger và Commander phases |
+| [PHASE_11_COMPLETION_REPORT.md](PHASE_11_COMPLETION_REPORT.md) | Kết quả triển khai Phase 11 |
 
 
 ## Phase 9 — Runtime QA & Benchmark
@@ -169,6 +172,11 @@ The recorder exports FPS/frame-time percentiles, draw calls, triangles, geometry
 Replay v2 records keyboard/mouse, touch joystick/look/actions, pause/resume, abandon-to-menu and Endless upgrade selections. It snapshots look sensitivity/Y inversion and compares quantized gameplay checkpoints every 120 frames, including player, weapon ordnance, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable, nhưng không thể tái tạo input touch, lifecycle và Endless upgrade mà v1 chưa ghi. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
 
 Phase 9 remains the final system-wide QA/release gate and should be signed off after implementation phases are complete.
+
+
+## Phase 11 — Combat Depth & Enemy AI Evolution
+
+Each enemy now creates a different combat decision: Drone uses a telegraphed aimed shot, Speeder flanks and charges through a locked lane, Brute marks a ground-slam area, and Commander escalates from a single shot to three- and five-projectile fans across its health phases. Focused damage can interrupt telegraphs. The Commander reactor deals 2.5× damage only during its 1.15-second exposed window after a volley. See [PHASE_11_QA.md](PHASE_11_QA.md) for attack timings, counterplay and the manual combat matrix.
 
 ## Lưu dữ liệu
 
