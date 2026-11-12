@@ -180,7 +180,8 @@ class Enemy {
         asset.clips.forEach(clip => { this.assetActions[clip.name.toLowerCase()] = clip; });
         this.assetMaterials.forEach(mat => {
           if (mat.emissive) mat.emissive.setHex(cfg.glow);
-          mat.emissiveIntensity = 0.06;
+          // Accent riêng theo từng archetype, đủ rõ dưới ACES nhưng không phủ sáng toàn model.
+          mat.emissiveIntensity = 0.1;
         });
         // Keep the visible reactor and boss pods from the procedural fallback.
         g.children.forEach(child => {
