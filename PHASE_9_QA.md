@@ -2,7 +2,9 @@
 
 ## Scope
 
-Phase 9 adds a repeatable runtime benchmark recorder and strengthens repository-level checks for browser lifecycle, WebGL handling, and Web/Android parity. It does not claim that an automated source test is equivalent to a real browser playthrough or physical-device test.
+Phase 9 is the project's **final system-wide QA and release-verification gate**. Run its complete browser/device regression and benchmark matrix after implementation phases are complete, including Phase 10 and later feature work. Its recorder and automated checks remain available during development, but a full Phase 9 sign-off is reserved for the end.
+
+Phase 9 adds a repeatable runtime benchmark recorder and repository-level checks for browser lifecycle, WebGL handling, and Web/Android parity. Automated source tests are not equivalent to a real browser playthrough or physical-device test.
 
 Architecture remains Three.js r128, classic scripts, local assets, no bundler, no CDN, and byte-identical Web/Android game runtime files.
 
@@ -94,4 +96,4 @@ Automated gates must pass and Web/Android mirrors must be identical. Any failed 
 - Automated tests validate source contracts and the benchmark utility; they do not run the complete game in a real browser.
 - Physical Android touch, lifecycle, GPU, thermal behavior, memory pressure and sustained FPS still need device testing.
 - WebGL context restoration reloads the page; in-place scene reconstruction is not implemented.
-- Replay still does not record touch input and platform lifecycle events; see [PHASE_7_QA.md](PHASE_7_QA.md).
+- Replay input coverage is extended in Phase 10; see [PHASE_10_QA.md](PHASE_10_QA.md). Cross-platform manual replay tests remain part of Phase 10 exit criteria.
