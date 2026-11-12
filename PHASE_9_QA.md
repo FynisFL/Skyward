@@ -45,9 +45,9 @@ Or export the JSON string directly:
 copy(window.__SKYWARD__.benchmark.export());
 ```
 
-The recorder samples once per second by default, up to 1,800 samples. It records FPS derived from frame-time p50, frame-time p50/p95/p99/max, draw calls, triangles, geometries, textures, particles, decals, live enemies, render scale, adaptive FPS, mission, wave, and game state. Device metadata includes user agent, platform hint, viewport, DPR, touch capability, quality preset, and run seed. The recorder stops automatically when the document is hidden, the page is being unloaded, the native Android wrapper pauses, or WebGL context is lost.
+The recorder samples once per second by default, up to 1,800 samples. It records FPS derived from frame-time p50, frame-time p50/p95/p99/max, draw calls, triangles, geometries, textures, particles, decals, live enemies, render scale, adaptive FPS, mission, wave, and game state. Device metadata includes user agent, platform hint, viewport, DPR, touch capability, quality preset, and run seed. The recorder stops automatically when gameplay is paused, the document is hidden, the page is being unloaded, the Android wrapper pauses/back action fires, or WebGL context is lost.
 
-Reports include per-metric min/average/p50/p95/max, the raw one-second samples, capture duration, scenario metadata and stop reason. Run captures separately for each scenario and trial; do not combine menu and combat data into one report.
+Reports include per-metric min/average/p50/p95/max, the raw one-second samples, capture duration, scenario metadata and stop reason. Frame p50/p95/p99/max values are rolling-window measurements captured once per second; aggregate p95/p99 summaries describe the distribution of those one-second readings, not a single percentile recomputed over every frame in the entire run. Run captures separately for each scenario and trial; do not combine menu and combat data into one report.
 
 ## Benchmark matrix
 
