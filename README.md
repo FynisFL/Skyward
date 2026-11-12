@@ -23,7 +23,7 @@ Các drop hồi máu/đạn, combo multiplier và lựa chọn nâng cấp chỉ
 ### Combat và progression
 
 - Ba vũ khí: Rifle, Revolver và Sniper.
-- AI phân vai: Drone giữ lane bắn có telegraph; Speeder flank và charge; Brute áp sát với ground slam; Commander chuyển phase, bắn volley và mở reactor weakpoint theo cửa sổ.
+- AI phân vai: Drone giữ lane bắn có telegraph; Speeder flank và charge; Brute áp sát với ground slam; Commander chuyển phase, tăng nhịp bắn, bắn volley và mở reactor weakpoint theo cửa sổ; Brute ground slam có counterplay bằng vị trí và độ cao.
 - Viewmodel vũ khí có sway, recoil, inspect, đổi súng và hiệu ứng nạp đạn.
 - XP, level, achievement và hồ sơ người chơi được lưu bằng `localStorage`.
 - Nâng cấp chiến đấu trong run chỉ tồn tại trong lượt Endless; progression không cộng vĩnh viễn combat stats.
