@@ -71,8 +71,25 @@
     return 1;
   }
 
+  function getCommanderTuning(phase) {
+    const selected = Math.max(1, Math.min(3, Math.floor(Number(phase) || 1)));
+    const tuning = {
+      1: { moveSpeed: 1.9, fireRate: 1.2, coreScale: 1, volleyCount: 1 },
+      2: { moveSpeed: 2.3, fireRate: 0.94, coreScale: 1.25, volleyCount: 3 },
+      3: { moveSpeed: 2.8, fireRate: 0.76, coreScale: 1.5, volleyCount: 5 }
+    }[selected];
+    return Object.freeze({
+      phase: selected,
+      moveSpeed: tuning.moveSpeed,
+      fireRate: tuning.fireRate,
+      coreScale: tuning.coreScale,
+      volleyCount: tuning.volleyCount
+    });
+  }
+
   function getCommanderVolleyOffsets(phase) {
-    const count = phase >= 3 ? 5 : (phase >= 2 ? 3 : 1);
+    const tuning = getCommanderTuning(phase);
+    const count = tuning.volleyCount;
     const spread = phase >= 3 ? 0.2 : (phase >= 2 ? 0.13 : 0);
     const offsets = [];
     for (let i = 0; i < count; i++) offsets.push(Number(((i - (count - 1) / 2) * spread).toFixed(6)));
@@ -119,6 +136,7 @@
     profiles: PROFILES,
     getProfile: getProfile,
     getCommanderPhase: getCommanderPhase,
+    getCommanderTuning: getCommanderTuning,
     getCommanderVolleyOffsets: getCommanderVolleyOffsets,
     isInChargeWindow: isInChargeWindow,
     isInsideRadialAttack: isInsideRadialAttack,
