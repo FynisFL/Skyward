@@ -16,7 +16,7 @@
 
 ## Automated verification
 
-Verified by GitHub Actions on commit `aa6a4dd9` for quality/web deploy and runtime commit `680c26c6` for the Android build pipeline. Manual gameplay and cross-device replay remain separate checks.
+Verified by GitHub Actions on runtime commit `42b65bd1` for quality validation, web deployment and Android APK build. The Pages build also passed on the immediately preceding web-identical source commit. Manual gameplay and cross-device replay remain separate checks.
 
 | Check | Status |
 |---|---|
@@ -27,17 +27,23 @@ Verified by GitHub Actions on commit `aa6a4dd9` for quality/web deploy and runti
 | Phase 10 Replay v2 tests | PASS |
 | Repository QA validator | PASS |
 | Web/Android runtime parity | PASS |
-| Android debug APK build | PASS on runtime commit `680c26c6` |
+| Android debug APK build + artifact upload | PASS on runtime commit `42b65bd1` |
 | Desktop replay manual test | NOT RUN until performed |
 | Android WebView replay manual test | NOT RUN until performed |
 | Cross-device replay matrix | NOT RUN until performed |
 
 ## CI evidence
 
-- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185064633)
-- [Web deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185064573)
-- [Android quality + APK pipeline — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185052824) — source checks, Phase 7–10 tests, repository validator, web/Android parity and debug APK build.
-- [Earlier Android build on Replay v2 runtime — PASS](https://github.com/FynisFL/Skyward/actions/runs/43184650817)
+- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185869023)
+- [Web deployment — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185868984)
+- [GitHub Pages build/deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185868915)
+- [Android QA + APK build + artifact upload — PASS](https://github.com/FynisFL/Skyward/actions/runs/43185869123)
+
+The Android artifact is named `Skyward-Salvage-Android-APK` and was uploaded by the workflow. It includes Replay v2, touch/lifecycle input capture, Endless upgrade recording, control-setting metadata and gameplay checkpoints.
+
+## Compatibility note
+
+Replay v1 tapes remain importable at the schema level. Because the old format did not record touch input, platform lifecycle transitions or Endless upgrade selections, those historical actions cannot be reconstructed during playback. Full deterministic replay of those actions requires a v2 recording.
 
 ## Manual verification still required
 
