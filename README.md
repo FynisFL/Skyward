@@ -123,7 +123,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 
 ### Trạng thái xác minh
 
-- Automated source tests và repository validator đã PASS trên commit `95431c4`; Phase 9 có benchmark unit-test và CI gate riêng, trạng thái được ghi ở [Phase 9 Completion Report](PHASE_9_COMPLETION_REPORT.md).
+- Phase 7/8/9 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên runtime commit `5469040`.
+- Web deploy, GitHub Pages và Android debug APK build/artifact upload: PASS. Xem [Phase 9 CI evidence](PHASE_9_COMPLETION_REPORT.md#ci-evidence).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
 - Replay hiện ghi nhận keyboard/mouse; touch input và platform lifecycle chưa được bao phủ đầy đủ.
@@ -139,6 +140,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 | [PHASE_7_COMPLETION_REPORT.md](PHASE_7_COMPLETION_REPORT.md) | Kết quả triển khai Phase 7 |
 | [PHASE_8_QA.md](PHASE_8_QA.md) | Adaptive rendering và cross-platform QA |
 | [PHASE_8_COMPLETION_REPORT.md](PHASE_8_COMPLETION_REPORT.md) | Kết quả triển khai Phase 8 |
+| [PHASE_9_QA.md](PHASE_9_QA.md) | Runtime regression và benchmark matrix |
+| [PHASE_9_COMPLETION_REPORT.md](PHASE_9_COMPLETION_REPORT.md) | Kết quả triển khai Phase 9 và CI evidence |
 
 
 ## Phase 9 — Runtime QA & Benchmark
