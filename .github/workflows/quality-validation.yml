@@ -37,5 +37,7 @@ jobs:
         run: node tools/qa/phase9.test.mjs
       - name: Run Replay v2 cross-platform tests
         run: node tools/qa/phase10.test.mjs
+      - name: Run role-based combat AI tests
+        run: node tools/qa/phase11.test.mjs
       - name: Run repository QA validator
         run: node tools/qa/validate.mjs
