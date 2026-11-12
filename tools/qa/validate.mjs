@@ -97,6 +97,23 @@ check('Android CI runs QA before building the APK', () => {
   assert.ok(workflow.includes('assembleDebug'));
 });
 
+check('All runtime JavaScript randomness uses seeded named streams', () => {
+  const offenders = jsFiles.filter((file) => /\\bMath\\.random\\s*\\(/.test(read(file)));
+  assert.deepEqual(offenders, [], 'Unseeded Math.random() remains in: ' + offenders.join(', '));
+});
+
+check('Phase 7 RNG, event and replay modules are loaded', () => {
+  for (const file of ['js/rng.js', 'js/events.js', 'js/replay.js']) {
+    assert.ok(exists(file), 'Missing ' + file);
+    assert.ok(html.includes(file), 'HTML does not load ' + file);
+  }
+});
+
+check('Phase 7 unit tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase7.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
