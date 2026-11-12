@@ -115,6 +115,7 @@ Yêu cầu Node.js 20 trở lên. Chạy từ thư mục gốc repository:
 node tools/qa/phase7.test.mjs
 node tools/qa/phase8.test.mjs
 node tools/qa/phase9.test.mjs
+node tools/qa/phase10.test.mjs
 node tools/qa/validate.mjs
 find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
@@ -127,7 +128,7 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 - Web deploy, GitHub Pages và Android debug APK build/artifact upload: PASS. Xem [Phase 9 CI evidence](PHASE_9_COMPLETION_REPORT.md#ci-evidence).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
-- Replay hiện ghi nhận keyboard/mouse; touch input và platform lifecycle chưa được bao phủ đầy đủ.
+- Replay v2 đã bổ sung touch và platform lifecycle input; cross-device manual playback vẫn cần xác minh.
 - Khi WebGL context được khôi phục, runtime hiện reload trang thay vì khôi phục scene tại chỗ.
 
 ## Phase documentation
@@ -142,6 +143,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 | [PHASE_8_COMPLETION_REPORT.md](PHASE_8_COMPLETION_REPORT.md) | Kết quả triển khai Phase 8 |
 | [PHASE_9_QA.md](PHASE_9_QA.md) | Runtime regression và benchmark matrix |
 | [PHASE_9_COMPLETION_REPORT.md](PHASE_9_COMPLETION_REPORT.md) | Kết quả triển khai Phase 9 và CI evidence |
+| [PHASE_10_QA.md](PHASE_10_QA.md) | Replay v2 và kiểm thử determinism đa nền tảng |
+| [PHASE_10_COMPLETION_REPORT.md](PHASE_10_COMPLETION_REPORT.md) | Kết quả triển khai Phase 10 |
 
 
 ## Phase 9 — Runtime QA & Benchmark
@@ -159,6 +162,13 @@ copy(window.__SKYWARD__.benchmark.export());
 ```
 
 The recorder exports FPS/frame-time percentiles, draw calls, triangles, geometry/texture counts, particles, decals, enemies, render scale and adaptive FPS. See [PHASE_9_QA.md](PHASE_9_QA.md) for the benchmark matrix and manual regression checklist. Automated CI does not replace physical browser/Android testing.
+
+
+## Phase 10 — Replay 2.0 & Cross-Platform Determinism
+
+Replay v2 records keyboard/mouse, touch joystick/look/actions and pause/resume transitions. It also compares quantized gameplay checkpoints every 120 frames, including player, weapon, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
+
+Phase 9 remains the final system-wide QA/release gate and should be signed off after implementation phases are complete.
 
 ## Lưu dữ liệu
 
