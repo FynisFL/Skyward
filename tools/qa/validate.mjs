@@ -180,6 +180,30 @@ check('Phase 10 Replay v2 regression tests pass', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
+check('Phase 11 role-based combat AI is loaded and mirrored', () => {
+  const combatAI = read('js/combat_ai.js');
+  assert.ok(html.includes('js/combat_ai.js'));
+  assert.ok(html.indexOf('js/combat_ai.js') < html.indexOf('js/enemies.js'));
+  assert.equal(read('app/src/main/assets/game/js/combat_ai.js'), combatAI);
+  for (const token of ['ranged-support', 'flanker', 'frontline-disruptor', 'commander']) {
+    assert.ok(combatAI.includes(token), 'Missing enemy combat role: ' + token);
+  }
+  for (const token of ['_beginTelegraph', 'enemy:telegraph', 'enemy:staggered', 'enemy:phase', 'isWeakpointExposed']) {
+    assert.ok(enemies.includes(token), 'Missing AI telegraph/stagger/phase integration: ' + token);
+  }
+  for (const token of ['charge', 'ground-slam', 'commander-volley', 'attackState', 'bossPhase']) {
+    assert.ok(enemies.includes(token), 'Missing role-specific attack state: ' + token);
+  }
+  assert.ok(weapons.includes('weakpointExposed ? 2.5 : 1'), 'Commander weakpoint must depend on exposure window');
+  assert.ok(main.includes('weakpointExposed'));
+  assert.ok(main.includes('attackState: enemy.attackState'), 'Replay checkpoint must include enemy AI state');
+});
+
+check('Phase 11 combat AI deterministic unit tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase11.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
