@@ -752,3 +752,23 @@ kbd {
 #touch-controls.hud-editing [data-hud-editable] { z-index:8; }
 #touch-controls.hud-editing #touch-look-zone { z-index:2; }
 #touch-controls.hud-editing #touch-stick { z-index:8; }
+/* HUD cleanup: giữ killfeed ngoài vùng ngắm và giới hạn chiều rộng thông báo. */
+#killfeed {
+  top: 164px;
+  right: 22px;
+  transform: none;
+  max-width: min(320px, 30vw);
+}
+.kf-item {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (pointer: coarse) {
+  #killfeed {
+    top: max(110px, calc(env(safe-area-inset-top) + 96px));
+    right: max(10px, env(safe-area-inset-right));
+    max-width: min(260px, 38vw);
+  }
+}
