@@ -7,7 +7,7 @@
 - Added explicit pause/resume records, including source metadata for browser and Android lifecycle interruptions.
 - Prevented physical touch, keyboard and mouse interaction from interfering with an active replay.
 - Added deterministic gameplay checkpoints every 120 replay frames.
-- Checkpoints compare player, weapon, wave, enemy, projectile, pickup, upgrade and gameplay/AI/weapon RNG state.
+- Checkpoints compare player, weapon, grenade/airstrike state, wave, enemy projectiles and AI timers, pickup phase/position, upgrades and gameplay/AI/weapon RNG state.
 - Quantized checkpoint numeric values to three decimal places; pixel-identical GPU rendering remains out of scope.
 - Replaced wall-clock-driven pickup bob animation with simulation-time-driven animation to avoid gameplay-affecting nondeterminism.
 - Added Phase 10 replay schema/timeline/legacy/import validation tests and CI / Android build gates.
