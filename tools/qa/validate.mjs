@@ -196,7 +196,7 @@ check('Phase 11 role-based combat AI is loaded and mirrored', () => {
     assert.ok(enemies.includes(token), 'Missing role-specific attack state: ' + token);
   }
   assert.ok(weapons.includes('weakpointExposed ? 2.5 : 1'), 'Commander weakpoint must depend on exposure window');
-  assert.ok(weapons.includes('raySphereDistance'), 'Hitscan must include the enemy ray-sphere fallback');
+  assert.ok(weapons.includes('getEnemyProxyCandidates'), 'Hitscan must evaluate proxy fallback per enemy');
   assert.ok(weapons.includes('hitProxy: true'), 'Fallback intersections must be identified as hit proxies');
   assert.ok(loader.includes('o.frustumCulled = false'), 'Animated enemy meshes must not use rest-pose frustum bounds');
   assert.ok(main.includes('weakpointExposed'));
