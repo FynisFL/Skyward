@@ -55,7 +55,7 @@
       windup: 0.78,
       recover: 0.78,
       weakpointWindow: 1.15,
-      staggerThreshold: 190
+      staggerThreshold: 125
     })
   });
 
