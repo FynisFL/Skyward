@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import '../js/rng.js';
-import '../js/events.js';
-import '../js/replay.js';
+import '../../js/rng.js';
+import '../../js/events.js';
+import '../../js/replay.js';
 
 const rng = globalThis.SkywardRNG;
 const events = globalThis.SkywardEvents;
