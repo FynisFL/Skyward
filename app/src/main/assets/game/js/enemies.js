@@ -472,10 +472,20 @@ class Enemy {
       const pp = p.mesh.position;
       const target = new THREE.Vector3(player.pos.x, player.pos.y - 0.85, player.pos.z);
       const hit = pp.distanceTo(target) < 1.35;
-      const blocked = world && typeof world.isEnemyProjectileBlocked === 'function' &&
-        world.isEnemyProjectileBlocked(pp.x, pp.y, pp.z, 0.22);
+      let blocked = false;
+      if (world && typeof world.isEnemyProjectileBlocked === 'function') {
+        const travel = previous.distanceTo(pp);
+        const samples = Math.max(1, Math.ceil(travel / 0.18));
+        for (let step = 1; step <= samples; step++) {
+          const t = step / samples;
+          const x = previous.x + (pp.x - previous.x) * t;
+          const y = previous.y + (pp.y - previous.y) * t;
+          const z = previous.z + (pp.z - previous.z) * t;
+          if (world.isEnemyProjectileBlocked(x, y, z, 0.22)) { blocked = true; break; }
+        }
+      }
       let dead = p.life <= 0 || pp.y < 0.1 || blocked;
-      if (hit && !player.dead) {
+      if (hit && !blocked && !player.dead) {
         onPlayerHit(p.damage, pp.clone());
         dead = true;
       }
