@@ -1,7 +1,7 @@
 /* ============================================================
    SKYWARD SALVAGE — world.js  (V2)
-   Cirrus Reach: bầu trời, mây nhiều lớp, đảo trôi, turbine,
-   props kể chuyện, ánh sáng điện ảnh. Vật liệu từ textures.js.
+   Aegis-09: industrial sci-fi salvage facility, layered service decks,
+   command hangar, containment reactor and floating relay platforms.
    ============================================================ */
 
 const World = (() => {
@@ -863,7 +863,7 @@ const World = (() => {
         g.rotation.y += dt * 0.03 * k;
       });
 
-      // cây đung đưa theo gió
+      // ambient sway hooks for optional environment props
       for (let i = 0; i < world.sway.length; i++) {
         const s = world.sway[i];
         s.obj.rotation.z = s.base + Math.sin(t * 1.35 + s.phase) * s.amp * k;
