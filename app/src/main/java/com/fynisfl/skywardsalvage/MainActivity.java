@@ -72,13 +72,36 @@ public class MainActivity extends Activity {
         if (hasFocus) enterImmersiveMode();
     }
 
+    private void dispatchGameEvent(String eventName) {
+        if (gameView != null) {
+            gameView.evaluateJavascript(
+                "window.dispatchEvent(new Event('" + eventName + "'))",
+                null
+            );
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        dispatchGameEvent("skyward-native-pause");
+        if (gameView != null) gameView.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (gameView != null) {
+            gameView.onResume();
+            dispatchGameEvent("skyward-native-resume");
+        }
+        enterImmersiveMode();
+    }
+
     @Override
     public void onBackPressed() {
         if (gameView != null) {
-            gameView.evaluateJavascript(
-                "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',keyCode:27,which:27,bubbles:true}))",
-                null
-            );
+            dispatchGameEvent("skyward-native-back");
         } else {
             super.onBackPressed();
         }
