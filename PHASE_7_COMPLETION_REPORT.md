@@ -31,7 +31,7 @@ Latest automated validation: [GitHub Actions run](https://github.com/FynisFL/Sky
 
 ## Known limitations
 
-- Replay currently captures keyboard and mouse input only. Touch joystick/look/action input, browser blur/visibility changes and pointer-lock-loss pause events are not recorded; runs containing these inputs are not claimed to be replay-complete.
+- Phase 7 replay v1 captured keyboard and mouse only. Phase 10 supersedes this limitation with replay v2 touch input, lifecycle state transitions and deterministic gameplay checkpoints; see [PHASE_10_QA.md](PHASE_10_QA.md).
 - Frame-step playback uses recorded delta time and seeded random streams. Pixel-identical rendering across GPUs/browsers is not a target.
 - Browser playback and Android device lifecycle still require manual validation.
 - Classic-script loading, Three.js r128 and offline runtime constraints are retained; no runtime dependency was added.
