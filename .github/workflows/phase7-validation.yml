@@ -2,7 +2,7 @@ name: Phase 7 deterministic validation
 
 on:
   push:
-    branches: [phase/7-deterministic-foundation]
+    branches: [main]
   pull_request:
     branches: [main]
     paths:
@@ -11,6 +11,7 @@ on:
       - "tools/qa/**"
       - "PHASE_7_*.md"
       - ".github/workflows/phase7-validation.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
