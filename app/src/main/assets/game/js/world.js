@@ -743,12 +743,24 @@ const World = (() => {
     const drand = () => { ds = (ds * 1664525 + 1013904223) >>> 0; return ds / 4294967296; };
     const debrisCount = q === 'low' ? 8 : 20;
     for (let i = 0; i < debrisCount; i++) {
-      const g = new THREE.DodecahedronGeometry(0.3 + drand() * 0.9, 0);
+      const size = 0.3 + drand() * 0.9;
+      const g = new THREE.DodecahedronGeometry(size, 0);
       const a = drand() * Math.PI * 2;
       const r = 12 + drand() * 40;
+      const debrisX = Math.cos(a) * r;
+      const debrisZ = Math.sin(a) * r;
       g.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(drand() * 3, drand() * 3, drand() * 3)));
-      g.applyMatrix4(new THREE.Matrix4().makeTranslation(Math.cos(a) * r, 0.25, Math.sin(a) * r));
+      g.applyMatrix4(new THREE.Matrix4().makeTranslation(debrisX, 0.25, debrisZ));
       debrisGeoms.push(g);
+      world.playerColliders.push({
+        x: debrisX,
+        z: debrisZ,
+        shape: 'circle',
+        radius: size * 0.82,
+        minY: 0.25 - size,
+        maxY: 0.25 + size,
+        yaw: 0
+      });
     }
     const debris = new THREE.Mesh(mergeGeoms(debrisGeoms), rockMat);
     debris.castShadow = shadowOn;
