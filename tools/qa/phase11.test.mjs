@@ -43,6 +43,25 @@ assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, -1, 0, 0, -10, 1, 10), 9);
 assert.equal(ai.raySphereDistance(0, 0, 0, 0, 0, 0, 0, 0, -10, 1, 140), null);
 assert.equal(ai.raySphereDistance(NaN, 0, 0, 0, 0, -1, 0, 0, -10, 1, 140), null);
 
+// Per-enemy hit proxies must still test a near enemy when a farther enemy has a real mesh hit.
+const nearEnemy = { alive: true, spawnT: 0, radius: 1, group: { position: { x: 0, y: 0, z: -5 } } };
+const farEnemy = { alive: true, spawnT: 0, radius: 1, group: { position: { x: 0, y: 0, z: -10 } } };
+const farMeshHit = { object: { userData: { enemy: farEnemy } } };
+const proxies = ai.getEnemyProxyCandidates(
+  [nearEnemy, farEnemy],
+  [farMeshHit],
+  { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: -1 } },
+  140
+);
+assert.equal(proxies.length, 1);
+assert.equal(proxies[0].enemy, nearEnemy);
+assert.ok(proxies[0].distance < 5);
+assert.deepEqual(ai.getEnemyProxyCandidates(
+  [nearEnemy, farEnemy],
+  [{ object: { userData: { enemy: nearEnemy } } }, farMeshHit],
+  { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: -1 } },
+  140
+), []);
 // Focus fire during a tell can interrupt an attack, while damage below threshold accumulates.
 assert.deepEqual(ai.addStagger(0, 15, 25), { value: 15, interrupted: false });
 assert.deepEqual(ai.addStagger(15, 10, 25), { value: 0, interrupted: true });
