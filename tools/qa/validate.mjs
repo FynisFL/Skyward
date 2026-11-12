@@ -70,6 +70,7 @@ const main = read('js/main.js');
 const enemies = read('js/enemies.js');
 const world = read('js/world.js');
 const weapons = read('js/weapons.js');
+const loader = read('js/scifi_loader.js');
 const readme = read('README.md');
 
 check('Runtime exposes p50/p95/p99 performance diagnostics', () => {
@@ -195,6 +196,9 @@ check('Phase 11 role-based combat AI is loaded and mirrored', () => {
     assert.ok(enemies.includes(token), 'Missing role-specific attack state: ' + token);
   }
   assert.ok(weapons.includes('weakpointExposed ? 2.5 : 1'), 'Commander weakpoint must depend on exposure window');
+  assert.ok(weapons.includes('raySphereDistance'), 'Hitscan must include the enemy ray-sphere fallback');
+  assert.ok(weapons.includes('hitProxy: true'), 'Fallback intersections must be identified as hit proxies');
+  assert.ok(loader.includes('o.frustumCulled = false'), 'Animated enemy meshes must not use rest-pose frustum bounds');
   assert.ok(main.includes('weakpointExposed'));
   assert.ok(main.includes('attackState: enemy.attackState'), 'Replay checkpoint must include enemy AI state');
 });
