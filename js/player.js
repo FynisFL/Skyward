@@ -147,9 +147,13 @@ class Player {
     if (this.touchMove.x > 0.12) move.add(right.clone().multiplyScalar(Math.min(1, this.touchMove.x)));
     if (this.touchMove.x < -0.12) move.sub(right.clone().multiplyScalar(Math.min(1, -this.touchMove.x)));
 
-    const hasMoveInput = move.lengthSq() > 1e-6;
+    // Preserve analog stick magnitude while keeping keyboard movement full-speed.
+    // Clamp only the combined vector so diagonal input never exceeds normal speed.
+    const inputMagnitude = move.length();
+    const hasMoveInput = inputMagnitude > 1e-6;
     if (hasMoveInput) {
-      move.normalize().multiplyScalar(speed);
+      if (inputMagnitude > 1) move.multiplyScalar(1 / inputMagnitude);
+      move.multiplyScalar(speed);
       this.bob += dt * (sprint ? 15 : 11);
     } else {
       this.bob *= 1 - Math.min(1, dt * 8);
@@ -157,7 +161,12 @@ class Player {
 
     const dashActive = this.dashTime > 0;
     if (dashActive) {
-      move.multiplyScalar(3.4);
+      // A dash without directional input falls back to the player's facing direction.
+      if (hasMoveInput) {
+        move.normalize().multiplyScalar(speed * 3.4);
+      } else {
+        move.copy(fwd).multiplyScalar(speed * 3.4);
+      }
       this.dashTime = Math.max(0, this.dashTime - dt);
     }
 
