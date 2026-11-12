@@ -72,7 +72,7 @@ Tests validate role profiles, role-specific movement intent, the Speeder charge 
 
 ## Manual combat matrix
 
-- [ ] Drone: confirm aim line is visible before every shot; use cover and evade after the tell.
+- [ ] Drone: confirm the animated model stays visible while moving/attacking; aim at the body from front/side angles and confirm hits register even if mesh raycast misses; confirm aim line is visible before every shot; use cover and evade after the tell.
 - [ ] Speeder: confirm it changes lane, locks direction, lunges once and enters recovery after hit/miss; an elevated platform outside the 1.75-unit height tolerance must avoid the horizontal charge.
 - [ ] Brute: confirm ground radius appears at the locked position; step outside the marker to avoid damage.
 - [ ] Stagger: confirm focused damage interrupts Drone, Speeder and Brute telegraphs; validate Commander interruption with heavy/focused fire.
@@ -83,7 +83,7 @@ Tests validate role profiles, role-specific movement intent, the Speeder charge 
 - [ ] Mixed squad: verify Drone support pressure increases while a Brute is close; Speeders flank instead of stacking in the same firing lane.
 - [ ] Original missions, Blackout Offensive and Endless Protocol: complete representative runs and verify enemy counts, wave timing, upgrade choices and difficulty scaling remain intact.
 - [ ] Export/replay a combat tape and confirm no event/checkpoint divergences on the same environment.
-- [ ] Repeat on Android WebView in landscape; compare telegraph readability, collision and frame-time impact.
+- [ ] Repeat on Android WebView in landscape; compare model visibility, proxy hits, telegraph readability, collision and frame-time impact.
 
 ## Exit criteria
 
