@@ -141,6 +141,32 @@
     return distance >= 0 && distance <= maxDistance ? distance : null;
   }
 
+  function getEnemyProxyCandidates(enemies, meshHits, ray, maxDistance) {
+    const meshHitEnemies = new Set();
+    (meshHits || []).forEach(hit => {
+      const enemy = hit && hit.object && hit.object.userData && hit.object.userData.enemy;
+      if (enemy && enemy.alive) meshHitEnemies.add(enemy);
+    });
+    const candidates = [];
+    (enemies || []).forEach(enemy => {
+      if (!enemy || !enemy.alive || enemy.spawnT > 0 || !enemy.group ||
+          meshHitEnemies.has(enemy)) return;
+      const center = enemy.group.position;
+      const radius = enemy.isBoss
+        ? Math.max(1.35, Number(enemy.radius) * 0.78)
+        : Math.max(0.72, Number(enemy.radius) * 1.12);
+      const distance = raySphereDistance(
+        ray.origin.x, ray.origin.y, ray.origin.z,
+        ray.direction.x, ray.direction.y, ray.direction.z,
+        center.x, center.y, center.z,
+        radius, maxDistance
+      );
+      if (distance !== null) candidates.push({ enemy: enemy, distance: distance });
+    });
+    candidates.sort((a, b) => a.distance - b.distance);
+    return candidates;
+  }
+
   function addStagger(current, damage, threshold) {
     const total = Math.max(0, Number(current) || 0) + Math.max(0, Number(damage) || 0);
     const limit = Math.max(1, Number(threshold) || 1);
@@ -170,6 +196,7 @@
     isInsideRadialAttack: isInsideRadialAttack,
     isWithinVerticalTolerance: isWithinVerticalTolerance,
     raySphereDistance: raySphereDistance,
+    getEnemyProxyCandidates: getEnemyProxyCandidates,
     addStagger: addStagger,
     getMovementIntent: getMovementIntent
   });
