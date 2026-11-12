@@ -6,7 +6,7 @@
 - Added scenario metadata, browser/device hints, duration, sample count, stop reason, and raw time-series data.
 - Added per-metric min/average/p50/p95/max summaries and JSON export.
 - Exposed capture controls through `window.__SKYWARD__.benchmark`.
-- Added automatic benchmark stop on document hide, page unload, Android native pause, and WebGL context loss.
+- Added automatic benchmark stop on manual pause, document hide, page unload, Android native pause/back action, and WebGL context loss.
 - Extended performance snapshots with FPS derived from rolling frame-time p50 and frame sample count.
 - Added Phase 9 unit tests for capture lifecycle, sampling intervals, aggregation, export, sample cap, invalid metrics and reset.
 - Extended repository validation and CI / Android build gates.
@@ -14,20 +14,29 @@
 
 ## Automated verification
 
-Fill this section from the CI run attached to the Phase 9 commit. Automated success does not substitute for browser/device testing.
+Verified on runtime commit `54690407` and the documentation-only follow-up does not alter game source. Automated success does not substitute for browser/device testing.
 
 | Check | Status |
 |---|---|
-| JavaScript syntax | CI |
-| Phase 7 deterministic tests | CI |
-| Phase 8 adaptive rendering tests | CI |
-| Phase 9 benchmark recorder tests | CI |
-| Repository QA validator | CI |
-| Web/Android mirror parity | CI |
-| Android debug APK build | CI |
-| Web browser manual regression | NOT RUN until performed |
-| Physical Android regression | NOT RUN until performed |
-| Runtime benchmark trials | NOT RUN until captured |
+| JavaScript syntax | PASS |
+| Phase 7 deterministic tests | PASS |
+| Phase 8 adaptive rendering tests | PASS |
+| Phase 9 benchmark recorder tests | PASS |
+| Repository QA validator | PASS |
+| Web/Android mirror parity | PASS |
+| Android debug APK build + artifact upload | PASS |
+| Web browser manual regression | NOT RUN |
+| Physical Android regression | NOT RUN |
+| Runtime benchmark trials | NOT RUN |
+
+## CI evidence
+
+- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43181749067)
+- [Web deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43181748983)
+- [GitHub Pages deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43181748676)
+- [Android APK build and artifact upload — PASS](https://github.com/FynisFL/Skyward/actions/runs/43181748945)
+
+The Android job verified JavaScript syntax, repository QA, Phase 8 tests, Phase 9 tests and Web/Android asset parity before packaging the debug APK. Artifact name: `Skyward-Salvage-Android-APK`.
 
 ## Manual verification still required
 
