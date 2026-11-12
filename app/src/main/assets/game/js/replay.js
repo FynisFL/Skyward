@@ -22,7 +22,7 @@ function drainInputsForFrame(index){if(mode!=='playback'||!tape)return[];const d
 function compareRemaining(){if(tape)while(eventIndex<tape.events.length)divergences.push({expected:clone(tape.events[eventIndex++]),actual:null});}
 function stopPlayback(){if(mode==='playback'){compareRemaining();mode='idle';inFrame=false;}return status();}
 function status(){return{mode,seed:tape?tape.seed:null,frames:tape?tape.frames.length:0,inputs:tape?tape.inputs.length:0,events:tape?tape.events.length:0,playbackFrame:frameIndex,eventCursor:eventIndex,divergences:divergences.length,finished:!!(tape&&tape.finished),truncated:!!(tape&&tape.truncated)};}
-function finish(outcome){if(mode==='record'&&tape){tape.outcome=clone(outcome||{});tape.finished=true;mode='idle';inFrame=false;return status();}if(mode==='playback')return stopPlayback();return status();}
+function finish(outcome){if(mode==='record'&&tape){tape.outcome=clone(outcome||{});tape.finished=true;mode='idle';inFrame=false;return status();}if(mode==='playback'){const actual=clone(outcome||{});if(JSON.stringify(actual)!==JSON.stringify(tape.outcome))divergences.push({expectedOutcome:clone(tape.outcome),actualOutcome:actual});return stopPlayback();}return status();}
 const api={start,load,getTape,export:()=>tape?JSON.stringify(tape):null,startPlayback,nextFrame,drainInputsForFrame,recordInput,recordEvent,beginFrame,endFrame,finish,stopPlayback,isRecording,isPlaying,isReady,status};
 root.SkywardReplay=api;
 if(root.SkywardEvents&&typeof root.SkywardEvents.on==='function')root.SkywardEvents.on('*',e=>api.recordEvent(e.type,e.payload));
