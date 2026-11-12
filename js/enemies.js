@@ -482,10 +482,8 @@ class Enemy {
     this.bodyMat.emissiveIntensity = this.isBoss ? 1.25 : 0.7;
     if (this.assetMaterials) this.assetMaterials.forEach(mat => { if (mat.emissive) mat.emissiveIntensity = this.isBoss ? 1.25 : 0.7; });
     if (this.isBoss && this.core) {
-      const ratio = this.hp / this.maxHp;
-      this.core.scale.setScalar(ratio < 0.3 ? 1.5 : ratio < 0.65 ? 1.25 : 1);
-      this.moveSpeed = ratio < 0.3 ? 2.7 : ratio < 0.65 ? 2.25 : 1.9;
-      this.fireRate = ratio < 0.3 ? 0.78 : ratio < 0.65 ? 0.96 : 1.2;
+      const phaseScale = this.bossPhase >= 3 ? 1.5 : (this.bossPhase === 2 ? 1.25 : 1);
+      this.core.scale.setScalar(phaseScale);
     }
     if (point) {
       this.particles.burst(point, { count: 8, color: [1, 0.75, 0.35], color2: [1, 0.3, 0.2], speed: 6, life: 0.4, gravity: 8 });
