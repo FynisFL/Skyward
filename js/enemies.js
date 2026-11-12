@@ -251,13 +251,14 @@ class Enemy {
       return;
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
-    const material = new THREE.LineBasicMaterial({
+    const geometry = new THREE.CylinderGeometry(0.055, 0.055, 1, 8, 1, true);
+    const material = new THREE.MeshBasicMaterial({
       color: this.isBoss ? 0xff3159 : (this.type === 'speeder' ? 0xffa34d : 0xff5948),
-      transparent: true, opacity: 0.82, depthWrite: false
+      transparent: true, opacity: 0.78, depthWrite: false
     });
-    this.telegraphLine = new THREE.Line(geometry, material);
+    this.telegraphLine = new THREE.Mesh(geometry, material);
+    this._telegraphDirection = new THREE.Vector3();
+    this._telegraphMidpoint = new THREE.Vector3();
     this.telegraphLine.frustumCulled = false;
     this.telegraphLine.visible = false;
     this.telegraphLine.renderOrder = 5;
@@ -281,22 +282,34 @@ class Enemy {
 
   _updateTelegraphVisual() {
     if (this.telegraphLine) {
-      const attribute = this.telegraphLine.geometry.getAttribute('position');
-      const array = attribute.array;
       const from = this.group.position;
-      array[0] = from.x;
-      array[1] = from.y + 0.18;
-      array[2] = from.z;
-      array[3] = this.attackTarget.x;
-      array[4] = this.attackTarget.y;
-      array[5] = this.attackTarget.z;
-      attribute.needsUpdate = true;
+      const startY = from.y + 0.18;
+      this._telegraphDirection.set(
+        this.attackTarget.x - from.x,
+        this.attackTarget.y - startY,
+        this.attackTarget.z - from.z
+      );
+      const length = this._telegraphDirection.length();
+      this._telegraphMidpoint.set(
+        (from.x + this.attackTarget.x) * 0.5,
+        (startY + this.attackTarget.y) * 0.5,
+        (from.z + this.attackTarget.z) * 0.5
+      );
+      this.telegraphLine.position.copy(this._telegraphMidpoint);
+      this.telegraphLine.scale.set(1, Math.max(0.01, length), 1);
+      if (length > 0.001) {
+        this.telegraphLine.quaternion.setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          this._telegraphDirection.normalize()
+        );
+      }
+      this.telegraphLine.material.opacity = 0.68 + Math.sin(this.attackTimer * 15) * 0.12;
       this.telegraphLine.visible = this.attackState === 'telegraph';
     }
     if (this.telegraphMarker) {
       this.telegraphMarker.position.set(this.attackTarget.x, this.attackTarget.y + 0.1, this.attackTarget.z);
       const pulse = 0.94 + Math.sin(this.attackTimer * 13) * 0.045;
-      this.telegraphMarker.scale.setScalar(pulse);
+      this.telegraphMarker.scale.setScalar((this.combatProfile ? this.combatProfile.slamRadius : 3.55) * pulse);
       this.telegraphMarker.material.opacity = 0.38 + Math.sin(this.attackTimer * 16) * 0.08;
       this.telegraphMarker.visible = this.attackState === 'telegraph';
     }
