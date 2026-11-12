@@ -82,6 +82,7 @@ class Enemy {
     this.attackMovement = new THREE.Vector3();
     this.staggerMeter = 0;
     this.bossPhase = this.isBoss ? 1 : 0;
+    this.commanderTuning = this.isBoss && window.SkywardCombatAI ? window.SkywardCombatAI.getCommanderTuning(1) : null;
     this.weakpointOpenT = 0;
     this.telegraphLine = null;
     this.telegraphMarker = null;
@@ -337,8 +338,9 @@ class Enemy {
     const nextPhase = window.SkywardCombatAI.getCommanderPhase(this.hp, this.maxHp);
     if (nextPhase === this.bossPhase) return;
     this.bossPhase = nextPhase;
-    this.moveSpeed = nextPhase >= 3 ? 2.8 : (nextPhase === 2 ? 2.3 : 1.9);
-    this.fireRate = nextPhase >= 3 ? 0.76 : (nextPhase === 2 ? 0.94 : 1.2);
+    this.commanderTuning = window.SkywardCombatAI.getCommanderTuning(nextPhase);
+    this.moveSpeed = this.commanderTuning.moveSpeed;
+    this.fireRate = this.commanderTuning.fireRate;
     this._emitCombatEvent('enemy:phase', { phase: nextPhase, hpRatio: Number((this.hp / this.maxHp).toFixed(3)) });
   }
 
@@ -482,7 +484,7 @@ class Enemy {
     this.bodyMat.emissiveIntensity = this.isBoss ? 1.25 : 0.7;
     if (this.assetMaterials) this.assetMaterials.forEach(mat => { if (mat.emissive) mat.emissiveIntensity = this.isBoss ? 1.25 : 0.7; });
     if (this.isBoss && this.core) {
-      const phaseScale = this.bossPhase >= 3 ? 1.5 : (this.bossPhase === 2 ? 1.25 : 1);
+      const phaseScale = this.commanderTuning ? this.commanderTuning.coreScale : 1;
       this.core.scale.setScalar(phaseScale);
     }
     if (point) {
@@ -668,7 +670,7 @@ class Enemy {
     if (this.bossPods) this.bossPods.forEach((pod, index) => { pod.rotation.y += dt * (index - 1) * 0.7; });
     if (this.core) {
       const pulse = 1 + Math.sin(this.t * 5.5) * 0.09;
-      const phaseScale = this.bossPhase >= 3 ? 1.5 : this.bossPhase === 2 ? 1.25 : 1;
+      const phaseScale = this.commanderTuning ? this.commanderTuning.coreScale : 1;
       this.core.scale.setScalar(phaseScale * pulse);
       if (this.core.material && this.core.material.emissiveIntensity !== undefined) {
         this.core.material.emissiveIntensity = this.isWeakpointExposed() ? 3.2 : (this.bossPhase >= 3 ? 0.9 : 0.48);
