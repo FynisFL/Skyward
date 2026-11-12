@@ -25,6 +25,7 @@
       chargeDuration: 0.5,
       chargeSpeed: 25,
       hitRadius: 2.05,
+      chargeHeightTolerance: 1.75,
       damage: 14,
       cooldown: 3.8,
       recover: 0.72,
@@ -113,6 +114,12 @@
     return dx * dx + dz * dz <= r * r;
   }
 
+  function isWithinVerticalTolerance(firstY, secondY, tolerance) {
+    const a = Number(firstY), b = Number(secondY), limit = Number(tolerance);
+    if (![a, b, limit].every(Number.isFinite) || limit < 0) return false;
+    return Math.abs(a - b) <= limit;
+  }
+
   function addStagger(current, damage, threshold) {
     const total = Math.max(0, Number(current) || 0) + Math.max(0, Number(damage) || 0);
     const limit = Math.max(1, Number(threshold) || 1);
@@ -140,6 +147,7 @@
     getCommanderVolleyOffsets: getCommanderVolleyOffsets,
     isInChargeWindow: isInChargeWindow,
     isInsideRadialAttack: isInsideRadialAttack,
+    isWithinVerticalTolerance: isWithinVerticalTolerance,
     addStagger: addStagger,
     getMovementIntent: getMovementIntent
   });
