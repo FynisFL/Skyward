@@ -645,7 +645,12 @@ class Enemy {
     // Resolve the speeder's charge only after movement; a player can dodge the locked lane.
     if (this.attackState === 'lunge') {
       const contactDistance = Math.hypot(player.pos.x - pos.x, player.pos.z - pos.z);
-      if (!this.attackHit && contactDistance <= profile.hitRadius && !player.dead) {
+      const enemyFloorY = pos.y - this.baseY;
+      const playerFloorY = player.pos.y - player.eyeHeight;
+      const sameCombatHeight = window.SkywardCombatAI.isWithinVerticalTolerance(
+        enemyFloorY, playerFloorY, profile.chargeHeightTolerance
+      );
+      if (!this.attackHit && contactDistance <= profile.hitRadius && sameCombatHeight && !player.dead) {
         this.attackHit = true;
         this._emitCombatEvent('enemy:attack', { attack: 'charge-hit', damage: profile.damage });
         if (typeof onPlayerHit === 'function') {
