@@ -54,10 +54,17 @@ class Player {
   reset(world) {
     const spawnX = 0;
     const spawnZ = 34;
-    const spawnGround = world && typeof world.getSpawnHeight === 'function'
-      ? world.getSpawnHeight(spawnX, spawnZ)
-      : (world && Number.isFinite(world.groundY) ? world.groundY : 0);
+    const spawnSurface = world && typeof world.getSpawnSurface === 'function'
+      ? world.getSpawnSurface(spawnX, spawnZ)
+      : null;
+    const spawnGround = spawnSurface
+      ? spawnSurface.height
+      : (world && typeof world.getSpawnHeight === 'function'
+        ? world.getSpawnHeight(spawnX, spawnZ)
+        : (world && Number.isFinite(world.groundY) ? world.groundY : 0));
     this.groundY = Number.isFinite(spawnGround) ? spawnGround : 0;
+    this.groundCollider = spawnSurface ? spawnSurface.collider : null;
+    this.fallFromCollider = null;
     this.onGround = true;
     this.pos.set(spawnX, this.groundY + this.eyeHeight, spawnZ);
     this.yaw.rotation.set(0, 0, 0);
@@ -124,8 +131,7 @@ class Player {
     if (this.dead) return;
 
     const sprint = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
-    let speed = sprint ? 11.5 : 6.8;
-    speed *= this.mods.speed;
+    let speed = (sprint ? 11.5 : 6.8) * this.mods.speed;
 
     const yaw = this.yaw.rotation.y;
     const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
@@ -141,93 +147,157 @@ class Player {
     if (this.touchMove.x > 0.12) move.add(right.clone().multiplyScalar(Math.min(1, this.touchMove.x)));
     if (this.touchMove.x < -0.12) move.sub(right.clone().multiplyScalar(Math.min(1, -this.touchMove.x)));
 
-    if (move.lengthSq() > 0) {
+    const hasMoveInput = move.lengthSq() > 1e-6;
+    if (hasMoveInput) {
       move.normalize().multiplyScalar(speed);
       this.bob += dt * (sprint ? 15 : 11);
     } else {
       this.bob *= 1 - Math.min(1, dt * 8);
     }
 
-    if (this.dashTime > 0) {
+    const dashActive = this.dashTime > 0;
+    if (dashActive) {
       move.multiplyScalar(3.4);
-      this.dashTime -= dt;
+      this.dashTime = Math.max(0, this.dashTime - dt);
     }
 
-    // Keep feet height independent from horizontal movement. Resolve X then Z
-    // independently so blocked movement can slide along the wall.
-    const previousFeetY = this.pos.y - this.eyeHeight;
-    const canOccupy = (x, z) => {
-      const distance = Math.hypot(x, z);
-      if (distance > bounds) {
-        const scale = bounds / distance;
-        x *= scale;
-        z *= scale;
-      }
-      if (world && typeof world.isPlayerBlocked === 'function' &&
-          world.isPlayerBlocked(x, z, previousFeetY, this.collisionHeight, this.collisionRadius,
-            this.onGround ? this.maxStepUp : 0)) return null;
-      return { x, z };
-    };
-    const sweepAxis = (axis, delta) => {
-      if (!delta) return;
-      // Small substeps prevent fast dash movement tunnelling through thin barriers.
-      const maxSubstep = Math.max(0.1, this.collisionRadius * 0.45);
-      const steps = Math.max(1, Math.ceil(Math.abs(delta) / maxSubstep));
-      const step = delta / steps;
-      for (let i = 0; i < steps; i++) {
-        const candidate = canOccupy(
-          this.pos.x + (axis === 'x' ? step : 0),
-          this.pos.z + (axis === 'z' ? step : 0)
-        );
-        if (!candidate) break;
-        this.pos.x = candidate.x;
-        this.pos.z = candidate.z;
-      }
-    };
-    sweepAxis('x', move.x * dt);
-    sweepAxis('z', move.z * dt);
-
+    const getWalkableSurface = world && typeof world.getWalkableSurface === 'function'
+      ? world.getWalkableSurface.bind(world)
+      : null;
     const getWalkableHeight = world && typeof world.getWalkableHeight === 'function'
       ? world.getWalkableHeight.bind(world)
+      : null;
+    const getLandingSurface = world && typeof world.getLandingSurface === 'function'
+      ? world.getLandingSurface.bind(world)
       : null;
     const getLandingHeight = world && typeof world.getLandingHeight === 'function'
       ? world.getLandingHeight.bind(world)
       : null;
     const fallbackGround = world && Number.isFinite(world.groundY) ? world.groundY : 0;
 
-    if (this.onGround) {
-      const supportY = getWalkableHeight
-        ? getWalkableHeight(this.pos.x, this.pos.z, previousFeetY, this.maxStepUp, this.maxStepDown)
-        : (Math.abs(previousFeetY - fallbackGround) <= this.maxStepUp ? fallbackGround : null);
-
-      if (Number.isFinite(supportY)) {
-        // A small rise/drop is treated as a step. Larger drops start a fall.
-        this.groundY = supportY;
-        this.pos.y = supportY + this.eyeHeight;
-        this.vel.y = 0;
-      } else {
-        this.onGround = false;
-      }
+    // Jump input changes onGround outside this class. Capture the surface it
+    // launched from so its vertical side cannot trap the player during descent.
+    if (!this.onGround && !this.fallFromCollider && this.groundCollider) {
+      this.fallFromCollider = this.groundCollider;
     }
 
-    if (!this.onGround) {
-      const fromFeetY = this.pos.y - this.eyeHeight;
-      const nextFeetY = fromFeetY + this.vel.y * dt - 0.5 * this.gravity * dt * dt;
-      this.vel.y -= this.gravity * dt;
+    // Fixed-size physics slices keep landing checks synchronized with horizontal
+    // travel, including dash. This avoids skipping narrow platforms on low FPS.
+    const safeDt = Math.max(0, Math.min(dt, 0.12));
+    const physicsSteps = Math.max(1, Math.ceil(safeDt / (1 / 60)));
+    const stepDt = safeDt / physicsSteps;
+    const maxMoveStep = Math.max(0.08, this.collisionRadius * 0.35);
 
-      // Only land when descending through a surface from above.
-      const landingY = this.vel.y <= 0 && getLandingHeight
-        ? getLandingHeight(this.pos.x, this.pos.z, fromFeetY, nextFeetY)
-        : (this.vel.y <= 0 && fromFeetY >= fallbackGround && nextFeetY <= fallbackGround ? fallbackGround : null);
+    for (let physicsIndex = 0; physicsIndex < physicsSteps && safeDt > 0; physicsIndex++) {
+      const feetY = this.pos.y - this.eyeHeight;
+      const dx = move.x * stepDt;
+      const dz = move.z * stepDt;
+      const distance = Math.hypot(dx, dz);
+      const moveSteps = Math.max(1, Math.ceil(distance / maxMoveStep));
+      const stepX = dx / moveSteps;
+      const stepZ = dz / moveSteps;
 
-      if (Number.isFinite(landingY)) {
-        if (this.vel.y < -9) this.landDip = 0.12;
-        this.groundY = landingY;
-        this.pos.y = landingY + this.eyeHeight;
-        this.vel.y = 0;
-        this.onGround = true;
-      } else {
-        this.pos.y = nextFeetY + this.eyeHeight;
+      const canOccupy = (x, z) => {
+        const radialDistance = Math.hypot(x, z);
+        if (radialDistance > bounds) {
+          const scale = bounds / radialDistance;
+          x *= scale;
+          z *= scale;
+        }
+        if (world && typeof world.isPlayerBlocked === 'function' &&
+            world.isPlayerBlocked(
+              x, z, feetY, this.collisionHeight, this.collisionRadius,
+              this.onGround ? this.maxStepUp : 0,
+              this.onGround ? null : this.fallFromCollider
+            )) return null;
+        return { x, z };
+      };
+
+      for (let moveIndex = 0; moveIndex < moveSteps; moveIndex++) {
+        const full = canOccupy(this.pos.x + stepX, this.pos.z + stepZ);
+        if (full) {
+          this.pos.x = full.x;
+          this.pos.z = full.z;
+          continue;
+        }
+
+        // Resolve the blocked vector by testing each axis. Prefer the axis with
+        // more remaining travel so diagonal motion does not stick on corners.
+        const xOnly = Math.abs(stepX) > 1e-7
+          ? canOccupy(this.pos.x + stepX, this.pos.z)
+          : null;
+        const zOnly = Math.abs(stepZ) > 1e-7
+          ? canOccupy(this.pos.x, this.pos.z + stepZ)
+          : null;
+
+        if (xOnly && zOnly) {
+          if (Math.abs(dx) >= Math.abs(dz)) {
+            this.pos.x = xOnly.x;
+            this.pos.z = xOnly.z;
+          } else {
+            this.pos.x = zOnly.x;
+            this.pos.z = zOnly.z;
+          }
+        } else if (xOnly) {
+          this.pos.x = xOnly.x;
+          this.pos.z = xOnly.z;
+        } else if (zOnly) {
+          this.pos.x = zOnly.x;
+          this.pos.z = zOnly.z;
+        } else {
+          break;
+        }
+      }
+
+      if (this.onGround) {
+        const support = getWalkableSurface
+          ? getWalkableSurface(this.pos.x, this.pos.z, feetY, this.maxStepUp, this.maxStepDown)
+          : null;
+        const supportY = support
+          ? support.height
+          : (getWalkableHeight
+            ? getWalkableHeight(this.pos.x, this.pos.z, feetY, this.maxStepUp, this.maxStepDown)
+            : (Math.abs(feetY - fallbackGround) <= this.maxStepUp ? fallbackGround : null));
+
+        if (Number.isFinite(supportY)) {
+          this.groundY = supportY;
+          this.pos.y = supportY + this.eyeHeight;
+          this.vel.y = 0;
+          if (support) this.groundCollider = support.collider || null;
+          this.fallFromCollider = null;
+        } else {
+          this.onGround = false;
+          this.fallFromCollider = this.groundCollider || null;
+        }
+      }
+
+      if (!this.onGround) {
+        const fromFeetY = this.pos.y - this.eyeHeight;
+        const nextFeetY = fromFeetY + this.vel.y * stepDt - 0.5 * this.gravity * stepDt * stepDt;
+        const nextVelocityY = this.vel.y - this.gravity * stepDt;
+
+        const landing = nextVelocityY <= 0 && getLandingSurface
+          ? getLandingSurface(this.pos.x, this.pos.z, fromFeetY, nextFeetY)
+          : null;
+        const landingY = landing
+          ? landing.height
+          : (nextVelocityY <= 0 && getLandingHeight
+            ? getLandingHeight(this.pos.x, this.pos.z, fromFeetY, nextFeetY)
+            : (nextVelocityY <= 0 && fromFeetY >= fallbackGround && nextFeetY <= fallbackGround
+              ? fallbackGround : null));
+
+        if (Number.isFinite(landingY)) {
+          if (nextVelocityY < -9) this.landDip = 0.12;
+          this.groundY = landingY;
+          this.pos.y = landingY + this.eyeHeight;
+          this.vel.y = 0;
+          this.onGround = true;
+          if (landing) this.groundCollider = landing.collider || null;
+          this.fallFromCollider = null;
+        } else {
+          this.pos.y = nextFeetY + this.eyeHeight;
+          this.vel.y = nextVelocityY;
+        }
       }
     }
 
@@ -237,8 +307,9 @@ class Player {
     this.landDip = Math.max(0, this.landDip - dt);
     this.shake = Math.max(0, this.shake - dt * 1.6);
 
-    const bobY = Math.sin(this.bob) * 0.055 * Math.min(1, move.length() / 6);
-    const bobX = Math.cos(this.bob * 0.5) * 0.03 * Math.min(1, move.length() / 6);
+    const bobAmount = hasMoveInput ? Math.min(1, move.length() / 6) : 0;
+    const bobY = Math.sin(this.bob) * 0.055 * bobAmount;
+    const bobX = Math.cos(this.bob * 0.5) * 0.03 * bobAmount;
     const shakeX = (Math.random() - 0.5) * this.shake * 0.5;
     const shakeY = (Math.random() - 0.5) * this.shake * 0.5;
 

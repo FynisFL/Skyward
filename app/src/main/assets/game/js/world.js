@@ -170,41 +170,63 @@ const World = (() => {
       return Math.abs(x - p.x) <= halfW && Math.abs(z - p.z) <= halfD;
     }
 
-    world.getSpawnHeight = function (x, z) {
-      let height = Number.isFinite(this.groundY) ? this.groundY : 0;
+    world.getSpawnSurface = function (x, z) {
+      let surface = { height: Number.isFinite(this.groundY) ? this.groundY : 0, collider: null };
       for (let i = 0; i < this.platforms.length; i++) {
         const p = this.platforms[i];
-        if (containsPlatform(p, x, z) && p.topY > height) height = p.topY;
+        if (containsPlatform(p, x, z) && p.topY > surface.height) {
+          surface = { height: p.topY, collider: p.collider || null };
+        }
       }
-      return height;
+      return surface;
     };
 
-    world.getWalkableHeight = function (x, z, feetY, maxStepUp = 0.45, maxStepDown = 0.55) {
+    world.getSpawnHeight = function (x, z) {
+      return this.getSpawnSurface(x, z).height;
+    };
+
+    world.getWalkableSurface = function (x, z, feetY, maxStepUp = 0.45, maxStepDown = 0.55) {
       const minY = feetY - Math.max(0, maxStepDown) - 1e-4;
       const maxY = feetY + Math.max(0, maxStepUp) + 1e-4;
-      let height = null;
+      let surface = null;
       const ground = Number.isFinite(this.groundY) ? this.groundY : 0;
-      if (ground >= minY && ground <= maxY) height = ground;
+      if (ground >= minY && ground <= maxY) surface = { height: ground, collider: null };
       for (let i = 0; i < this.platforms.length; i++) {
         const p = this.platforms[i];
         if (!containsPlatform(p, x, z) || p.topY < minY || p.topY > maxY) continue;
-        if (height === null || p.topY > height) height = p.topY;
+        if (!surface || p.topY > surface.height) {
+          surface = { height: p.topY, collider: p.collider || null };
+        }
       }
-      return height;
+      return surface;
     };
 
-    world.getLandingHeight = function (x, z, fromFeetY, toFeetY) {
+    world.getWalkableHeight = function (x, z, feetY, maxStepUp = 0.45, maxStepDown = 0.55) {
+      const surface = this.getWalkableSurface(x, z, feetY, maxStepUp, maxStepDown);
+      return surface ? surface.height : null;
+    };
+
+    world.getLandingSurface = function (x, z, fromFeetY, toFeetY) {
       if (toFeetY > fromFeetY) return null;
-      let landing = null;
+      let surface = null;
       const ground = Number.isFinite(this.groundY) ? this.groundY : 0;
-      if (fromFeetY >= ground - 1e-4 && toFeetY <= ground + 1e-4) landing = ground;
+      if (fromFeetY >= ground - 1e-4 && toFeetY <= ground + 1e-4) {
+        surface = { height: ground, collider: null };
+      }
       for (let i = 0; i < this.platforms.length; i++) {
         const p = this.platforms[i];
         if (!containsPlatform(p, x, z)) continue;
         if (fromFeetY < p.topY - 1e-4 || toFeetY > p.topY + 1e-4) continue;
-        if (landing === null || p.topY > landing) landing = p.topY;
+        if (!surface || p.topY > surface.height) {
+          surface = { height: p.topY, collider: p.collider || null };
+        }
       }
-      return landing;
+      return surface;
+    };
+
+    world.getLandingHeight = function (x, z, fromFeetY, toFeetY) {
+      const surface = this.getLandingSurface(x, z, fromFeetY, toFeetY);
+      return surface ? surface.height : null;
     };
 
     world.sampleGroundHeight = function (x, z) {
@@ -219,11 +241,12 @@ const World = (() => {
       return true;
     }
 
-    world.isPlayerBlocked = function (x, z, feetY, bodyHeight = 1.62, radius = 0.36, stepUp = 0) {
+    world.isPlayerBlocked = function (x, z, feetY, bodyHeight = 1.62, radius = 0.36, stepUp = 0, ignoredPlatform = null) {
       const bodyMinY = feetY + 0.04;
       const bodyMaxY = feetY + bodyHeight;
       for (let i = 0; i < this.playerColliders.length; i++) {
         const c = this.playerColliders[i];
+        if (ignoredPlatform && c.object === ignoredPlatform) continue;
         if (c.object && !isObjectVisible(c.object)) continue;
         if (bodyMaxY <= c.minY + 0.02 || bodyMinY >= c.maxY - 0.02) continue;
 
@@ -322,7 +345,7 @@ const World = (() => {
       scene.add(mesh);
       world.platforms.push({
         x: p.x, z: p.z, w: p.w, d: p.d,
-        topY: p.y + p.h, baseY: p.y, height: p.h
+        topY: p.y + p.h, baseY: p.y, height: p.h, collider: mesh
       });
     });
 
@@ -437,7 +460,7 @@ const World = (() => {
     plinth.userData.platform = true;
     plinth.userData.blocksBullets = true;
     arch.add(plinth);
-    world.platforms.push({ x: 0, z: -34, w: 19, d: 5, topY: 1.2, baseY: 0, height: 1.2 });
+    world.platforms.push({ x: 0, z: -34, w: 19, d: 5, topY: 1.2, baseY: 0, height: 1.2, collider: plinth });
     arch.position.set(0, 0, -34);
     arch.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = shadowOn; } });
     scene.add(arch);
@@ -605,7 +628,7 @@ const World = (() => {
     pad.userData.platform = true;
     pad.userData.blocksBullets = true;
     props.add(pad);
-    world.platforms.push({ x: 0, z: 30, radius: 9, topY: 0.24, baseY: 0, height: 0.24 });
+    world.platforms.push({ x: 0, z: 30, radius: 9, topY: 0.24, baseY: 0, height: 0.24, collider: pad });
     const padRing = new THREE.Mesh(new THREE.TorusGeometry(7.6, 0.3, 8, 48), hazardMat);
     padRing.rotation.x = Math.PI / 2;
     padRing.position.set(0, 0.28, 30);
