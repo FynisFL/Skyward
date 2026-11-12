@@ -48,6 +48,9 @@ jobs:
       - name: Run Phase 10 Replay v2 tests
         run: node tools/qa/phase10.test.mjs
 
+      - name: Run Phase 11 combat AI tests
+        run: node tools/qa/phase11.test.mjs
+
       - name: Verify web and Android assets are identical
         run: |
           cmp index.html app/src/main/assets/game/index.html
