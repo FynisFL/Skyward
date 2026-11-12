@@ -79,13 +79,21 @@ class Player {
     this.shake = 0;
   }
   look(dx, dy) {
-    const s = 0.0022 * this.sensitivity;
+    // Ignore malformed pointer deltas; browser focus/pointer-lock transitions can
+    // occasionally produce non-finite values that poison the camera transform.
+    dx = Number.isFinite(dx) ? dx : 0;
+    dy = Number.isFinite(dy) ? dy : 0;
+    const sensitivity = Number.isFinite(this.sensitivity)
+      ? Math.max(0.1, Math.min(5, this.sensitivity)) : 1;
+    const s = 0.0022 * sensitivity;
     this.yaw.rotation.y -= dx * s;
     const dir = this.invertY ? -1 : 1;
-    this.pitch.rotation.x -= dy * s * dir;
-    const lim = 1.45;
-    if (this.pitch.rotation.x > lim) this.pitch.rotation.x = lim;
-    if (this.pitch.rotation.x < -lim) this.pitch.rotation.x = -lim;
+    // Permit near-vertical ground/sky aiming while retaining a small margin
+    // from +/- PI/2, where camera direction becomes numerically unstable.
+    const lim = Math.PI * 0.5 - 0.01;
+    this.pitch.rotation.x = THREE.MathUtils.clamp(
+      this.pitch.rotation.x - dy * s * dir, -lim, lim
+    );
   }
 
   forwardDir() {
