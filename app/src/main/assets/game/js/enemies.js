@@ -69,11 +69,11 @@ class Enemy {
     this.radius = cfg.radius;
     this.score = cfg.score;
     this.moveSpeed = cfg.speed; this.fireRate = cfg.fireRate;
-    this.fireTimer = 1.2 + Math.random() * cfg.fireRate;
+    this.fireTimer = 1.2 + SkywardRNG.random('ai') * cfg.fireRate;
     this.spawnT = 0.7;
-    this.strafePhase = Math.random() * Math.PI * 2;
-    this.strafeDir = Math.random() < 0.5 ? 1 : -1;
-    this.bobPhase = Math.random() * Math.PI * 2;
+    this.strafePhase = SkywardRNG.random('ai') * Math.PI * 2;
+    this.strafeDir = SkywardRNG.random('ai') < 0.5 ? 1 : -1;
+    this.bobPhase = SkywardRNG.random('ai') * Math.PI * 2;
     this.t = 0;
     this.flinchT = 0;
     this.flinchDir = new THREE.Vector3();
@@ -429,7 +429,7 @@ class Enemy {
     // bắn
     this.fireTimer -= dt;
     if (this.fireTimer <= 0 && dist < this.cfg.range * 1.8 && !player.dead) {
-      this.fireTimer = this.fireRate * (0.8 + Math.random() * 0.5);
+      this.fireTimer = this.fireRate * (0.8 + SkywardRNG.random('ai') * 0.5);
       this.shoot(player);
     }
   }
@@ -583,13 +583,13 @@ class WaveManager {
       });
       if (this.mods.waveCount >= 5 && idx === 4) list.push('boss');
     }
-    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = list[i]; list[i] = list[j]; list[j] = t; }
+    for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(SkywardRNG.random('ai') * (i + 1)); const t = list[i]; list[i] = list[j]; list[j] = t; }
     this._currentHpMul = this.mods.hpMul * mult;
     return list;
   }
 
   _spawnPos() {
-    const a = Math.random() * Math.PI * 2, r = 28 + Math.random() * 19;
+    const a = SkywardRNG.random('ai') * Math.PI * 2, r = 28 + SkywardRNG.random('ai') * 19;
     return new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r);
   }
 
