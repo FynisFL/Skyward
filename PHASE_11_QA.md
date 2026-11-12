@@ -16,8 +16,8 @@ Move combat beyond enemies that share one orbit-and-fire loop. Each archetype sh
 ## Combat rules
 
 - Drone aimed shot wind-up: 0.64 seconds.
-- Speeder charge: 0.72-second tell, bounded charge range, 0.48-second lunge and recovery.
-- Brute ground slam: 0.96-second tell, 3.55-unit radius, 23 base damage and 4.7-second cooldown.
+- Speeder charge: 0.72-second tell, 5.5–13.4-unit charge window, 0.5-second lunge and recovery.
+- Brute ground slam: 0.96-second tell, 3.55-unit radius, 1.75-unit vertical tolerance, 23 base damage and 4.7-second cooldown. Elevated platforms outside the height tolerance avoid the floor slam.
 - Aimed attacks lock the target position at telegraph start. The player can evade the locked location.
 - A telegraph is interrupted when accumulated damage during the wind-up reaches that enemy's stagger threshold.
 - Stagger decays over simulation time; it does not carry indefinitely between unrelated attacks.
