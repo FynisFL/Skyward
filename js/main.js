@@ -7,8 +7,7 @@
   const rng = window.SkywardRNG, events = window.SkywardEvents, replay = window.SkywardReplay;
   if (!rng || !events || !replay) throw new Error('[Skyward] Phase 7 runtime modules failed to load');
   const configuredSeed = rng.getConfiguredSeed();
-  let activeRunSeed = configuredSeed === null ? rng.createSeed() : configuredSeed;
-  rng.reset(activeRunSeed);
+  let activeRunSeed = rng.reset(configuredSeed === null ? rng.createSeed() : configuredSeed);
   const canvas = document.getElementById('game-canvas');
 
   // Chỉ bật touch UI khi thiết bị nhập chính là cảm ứng; laptop touchscreen vẫn giữ chuột + bàn phím.
@@ -417,6 +416,7 @@
       else if (code === 'Digit1') weapons.switchWeapon('auto');
       else if (code === 'Digit2') weapons.switchWeapon('handcannon');
       else if (code === 'Digit3') weapons.switchWeapon('scout');
+      else if (code === 'KeyP') { if (G.state === 'playing') pauseGame(); else if (G.state === 'paused') resumeGame(); }
       else if (code === 'Space' && player.onGround && !player.dead) { player.vel.y = player.jumpVelocity; player.onGround = false; Sound.jump(); }
     } else if (input.action === 'key-up') { if (data.code) player.keys.delete(data.code); }
     else if (input.action === 'look') player.look(Number(data.dx) || 0, Number(data.dy) || 0);
@@ -475,7 +475,7 @@
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
 
     if (G.state === 'playing') {
-      if (!e.repeat && e.code !== 'KeyP') recordInput('key-down', { code: e.code });
+      if (!e.repeat) recordInput('key-down', { code: e.code });
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].indexOf(e.code) >= 0) e.preventDefault();
       if (!e.repeat) {
         if (e.code === 'KeyR') weapons.startReload();
@@ -856,12 +856,10 @@
       const replayClass = CLASSES.find(item => item.id === meta.class);
       if (replayMission) G.mission = replayMission;
       if (replayClass) G.cls = replayClass;
-      activeRunSeed = playbackTape.seed;
-      rng.reset(activeRunSeed);
+      activeRunSeed = rng.reset(playbackTape.seed);
       replay.startPlayback();
     } else {
-      activeRunSeed = configuredSeed === null ? rng.createSeed() : configuredSeed;
-      rng.reset(activeRunSeed);
+      activeRunSeed = rng.reset(configuredSeed === null ? rng.createSeed() : configuredSeed);
       replay.start(activeRunSeed, { mission: G.mission.id, class: G.cls.id, weapon: weapons.current, input: 'keyboard-mouse', version: 1 });
     }
     if (hudSetupMode) { hudSetupMode = false; hudSetupBar.classList.add('hidden'); }
@@ -1103,7 +1101,7 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const replaying = replay.isPlaying();
-    if (replaying && G.state === 'playing') {
+    if (replaying) {
       const step = replay.nextFrame();
       if (!step) { pauseGame(); return; }
       replay.drainInputsForFrame(step.index).forEach(applyReplayInput);
@@ -1118,7 +1116,7 @@
     if (!(frameDt > 0)) frameDt = 0.016;
     const perfDt = frameDt;
     let dt = Math.min(frameDt, 0.06);
-    if (replaying && G.state === 'playing') { const tape = replay.getTape(); const frameIndex = replay.status().playbackFrame - 1; if (tape && frameIndex >= 0) dt = tape.frames[frameIndex]; }
+    if (replaying) { const tape = replay.getTape(); const frameIndex = replay.status().playbackFrame - 1; if (tape && frameIndex >= 0) dt = tape.frames[frameIndex]; }
     if (replay.isRecording()) replay.beginFrame(dt);
     update(dt);
     replay.endFrame();

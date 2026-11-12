@@ -98,7 +98,7 @@ check('Android CI runs QA before building the APK', () => {
 });
 
 check('All runtime JavaScript randomness uses seeded named streams', () => {
-  const offenders = jsFiles.filter((file) => /\\bMath\\.random\\s*\\(/.test(read(file)));
+  const offenders = jsFiles.filter((file) => /\bMath\.random\s*\(/.test(read(file)));
   assert.deepEqual(offenders, [], 'Unseeded Math.random() remains in: ' + offenders.join(', '));
 });
 
