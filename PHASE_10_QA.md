@@ -16,6 +16,7 @@ The project remains Three.js r128, classic scripts, local assets, no CDN, no bun
 | Touch look | coalesced relative look delta applied on the next frame |
 | Touch actions | semantic press/release for fire, aim, sprint, jump, reload, dash, grenade, strike and weapon cycle |
 | Pause / resume | explicit state transition with source metadata |
+| Abandon run | explicit return-to-menu transition with mission/wave outcome |
 | Platform interruption | window blur, visibility hide, page hide, Android pause/back and pointer-lock loss recorded through pause transition |
 
 Replay v2 stores frame deltas and ordered inputs. Touch movement is normalized to -1..1 so it does not depend on the original screen's pixel dimensions.
@@ -90,6 +91,7 @@ Phase 10 tests cover:
 - [ ] Replay the touch tape on the same Android WebView device and confirm zero divergences.
 - [ ] Import a desktop tape on Android and an Android tape on desktop. Compare gameplay checkpoints and note any engine/device-specific drift.
 - [ ] During recording, test window blur/focus, tab visibility, Android background/resume and pointer-lock loss; confirm the state transition appears in the input timeline and playback does not remain stuck.
+- [ ] Abandon an active/paused run back to the menu, replay the tape, and verify the abandoned outcome and final state match.
 - [ ] Confirm no touch input from the physical device can interfere while a replay is playing.
 - [ ] Test long sessions and large tapes; export, reload and replay the saved JSON.
 - [ ] Import a representative v1 tape and verify compatibility.
