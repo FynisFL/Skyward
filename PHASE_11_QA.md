@@ -73,7 +73,7 @@ Tests validate role profiles, role-specific movement intent, the Speeder charge 
 ## Manual combat matrix
 
 - [ ] Drone: confirm aim line is visible before every shot; use cover and evade after the tell.
-- [ ] Speeder: confirm it changes lane, locks direction, lunges once and enters recovery after hit/miss.
+- [ ] Speeder: confirm it changes lane, locks direction, lunges once and enters recovery after hit/miss; an elevated platform outside the 1.75-unit height tolerance must avoid the horizontal charge.
 - [ ] Brute: confirm ground radius appears at the locked position; step outside the marker to avoid damage.
 - [ ] Stagger: confirm focused damage interrupts Drone, Speeder and Brute telegraphs; validate Commander interruption with heavy/focused fire.
 - [ ] Commander phase I: confirm one projectile and baseline tempo.
