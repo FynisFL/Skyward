@@ -1,31 +1,56 @@
-# SKYWARD SALVAGE — Final Build
+# Skyward Salvage
 
-Skyward Salvage là game FPS 3D sinh tồn theo wave, chạy trực tiếp trong trình duyệt. Bản này mở rộng dự án theo hướng **Modern Military Sci‑Fi FPS + Roguelite Survival**, sử dụng Hybrid 3D: model glTF Quaternius CC0 kết hợp gameplay/hitbox/weakpoint procedural, đồng thời giữ nguyên kiến trúc JavaScript thuần.
+**Skyward Salvage** là game FPS 3D sinh tồn theo wave, chạy trên trình duyệt và Android WebView. Dự án theo hướng **Military Sci-Fi FPS + Roguelite Survival**, dùng Three.js r128, JavaScript thuần và asset đóng gói cục bộ.
 
-## Khởi chạy
+- **Chơi trên web:** https://fynisfl.github.io/Skyward/
+- **Mã nguồn:** https://github.com/FynisFL/Skyward
+- **Android APK:** xem [hướng dẫn build](ANDROID_BUILD.md) hoặc tải artifact từ tab [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
 
-**Cách 1 — mở trực tiếp:** nhấp đúp `index.html` trong thư mục game. Bản phát hành không dùng CDN, không có build step và không cần tải asset từ Internet.
+## Tính năng
 
-**Cách 2 — local server (khuyến nghị khi trình duyệt hạn chế `file://`):**
-
-```bash
-cd skyward-salvage
-python -m http.server 8080
-```
-
-Mở `http://localhost:8080`. Trên Windows có thể chạy `start.bat`; file này tự dùng Python local nếu máy đã cài Python.
-
-## Chế độ chơi
+### Chế độ chơi
 
 | Mission | Nội dung | Mở khóa |
 |---|---|---|
 | Tín hiệu Beryl | 3 wave tiêu chuẩn | Mặc định |
 | Xuyên qua cơn giông | 3 wave, mật độ và HP địch tăng | Mặc định |
 | Thử thách bởi gió | Sống sót 120 giây, tối ưu điểm | Mặc định |
-| Blackout Offensive | 5 wave, boss ở wave cuối, bản đồ Stormglass Outpost | Level 2 |
+| Blackout Offensive | 5 wave, Commander ở wave cuối, bản đồ Stormglass Outpost | Level 2 |
 | Endless Protocol | Wave vô hạn, boss định kỳ, chọn 1 trong 3 nâng cấp sau mỗi wave | Level 4 |
 
-Các drop hồi máu/đạn, combo multiplier và lựa chọn nâng cấp chỉ hoạt động trong Endless Protocol; ba mission gốc giữ nguyên luật thưởng và nhịp wave.
+Các drop hồi máu/đạn, combo multiplier và lựa chọn nâng cấp chỉ hoạt động trong Endless Protocol. Ba mission gốc giữ nguyên luật thưởng và nhịp wave.
+
+### Combat và progression
+
+- Ba vũ khí: Rifle, Revolver và Sniper.
+- Các loại địch Drone, Speeder, Brute và Commander boss; Commander có reactor weakpoint và các pha hành vi.
+- Viewmodel vũ khí có sway, recoil, inspect, đổi súng và hiệu ứng nạp đạn.
+- XP, level, achievement và hồ sơ người chơi được lưu bằng `localStorage`.
+- Nâng cấp chiến đấu trong run chỉ tồn tại trong lượt Endless; progression không cộng vĩnh viễn combat stats.
+
+### Hỗ trợ thiết bị
+
+- PC: bàn phím và chuột, Pointer Lock.
+- Touch: joystick di chuyển, vuốt để xoay góc nhìn và các nút hành động.
+- Android: native WebView wrapper, asset game được đóng gói offline.
+- Preset đồ họa Low / Medium / High, giảm chuyển động và adaptive render resolution.
+- Nhấn `F3` để mở bảng chẩn đoán hiệu năng.
+
+## Chạy local
+
+Không cần `npm install`, bundler hoặc build step cho phiên bản web.
+
+**Khuyến nghị: chạy local server**
+
+Yêu cầu Python 3:
+
+```bash
+python -m http.server 8080
+```
+
+Mở http://localhost:8080. Trên Windows có thể chạy `start.bat`.
+
+Game cũng có thể mở trực tiếp bằng `index.html`; local server được khuyến nghị để tránh giới hạn `file://` của một số trình duyệt.
 
 ## Điều khiển PC
 
@@ -50,70 +75,70 @@ Các drop hồi máu/đạn, combo multiplier và lựa chọn nâng cấp chỉ
 
 - Joystick bên trái: di chuyển.
 - Kéo vùng bên phải: xoay góc nhìn.
-- Nút cảm ứng: bắn, ngắm, nhảy, chạy, nạp đạn, Q, E, F, đổi vũ khí và tạm dừng.
-- Bố cục tự điều chỉnh cho màn hình dọc và ngang. Cần kiểm tra thêm trên thiết bị thật vì cấu hình phần cứng/trình duyệt khác nhau.
+- Các nút cảm ứng: bắn, ngắm, nhảy, chạy, nạp đạn, dash, lựu đạn, không kích, đổi vũ khí và tạm dừng.
+- Bố cục điều khiển thích ứng với màn hình nhỏ. Android wrapper hiện khóa hướng landscape.
 
-## Hybrid 3D assets
+## Công nghệ và kiến trúc
 
-- Enemy: Quaternius EyeDrone, QuadShell và Trilobite; Commander dùng QuadShell phóng lớn kết hợp reactor weakpoint.
-- Weapon viewmodel: Rifle, Revolver và Sniper glTF; lựu đạn ném dùng Prop_Grenade.
-- Environment/pickups: crate, ammo cache và health pack.
-- Asset pack: [Quaternius Sci-Fi Essentials Kit (Standard)](https://quaternius.com/), giấy phép CC0 1.0; license được giữ tại `assets/scifi/LICENSE_CC0.txt`.
-- Model buffers được nhúng Base64 để tránh XHR/fetch trên `file://`; texture PNG được đóng gói cục bộ. Nếu model loader lỗi, game dùng procedural fallback.
-- Texture maps có hai mức 512×512 (Low/Medium) và 1024×1024 (High); không tải asset từ CDN hoặc Internet khi chơi.
+- **Three.js r128** được lưu cục bộ tại `vendor/three.min.js`.
+- Vanilla JavaScript, HTML và CSS; dùng classic script, không dùng ES modules, React, bundler hoặc CDN.
+- WebAudio tạo âm thanh; Canvas 2D tạo minimap.
+- Runtime không tải model, texture hoặc thư viện từ Internet.
+- Model Quaternius Sci-Fi Essentials Kit được đóng gói trong `js/scifi_assets.js`; texture PNG nằm trong `assets/scifi/`.
+- Asset pack Quaternius được sử dụng theo giấy phép CC0 1.0; bản license được lưu tại `assets/scifi/LICENSE_CC0.txt`.
+- Texture maps có mức 512×512 và 1024×1024 theo preset đồ họa; model loader có procedural fallback khi asset không tải được.
 
-## Vũ khí và kẻ địch
-
-**Vũ khí:** súng trường tự động, súng ngắn hạng nặng, súng trường chính xác. Có viewmodel cánh tay/găng, sway, recoil, hiệu ứng nạp đạn, đổi súng và inspect.
-
-**Kẻ địch:** Drone, Speeder, Brute và Commander boss. Boss có lõi năng lượng làm weakpoint, nhận thêm sát thương khi bắn trúng lõi và chuyển pha hành vi khi HP xuống thấp.
-
-## Tiến trình
-
-- XP, level, số mission, số hạ gục, số chiến thắng và wave cao nhất được lưu bằng `localStorage`.
-- Achievement: First Blood, Eliminator, Mission Complete và Wave 10.
-- Level mở khóa Blackout, Endless và skin accent cho vũ khí.
-- Nâng cấp trong run chỉ tồn tại trong lượt Endless đang chơi; không cộng vĩnh viễn chỉ số chiến đấu.
-
-## Hiệu năng và tùy chọn
-
-- Preset đồ họa Low / Medium / High; thiết bị touch mới mặc định Low nếu chưa có lựa chọn lưu. Thay đổi preset sẽ tải lại trang để tái tạo texture.
-- Hỗ trợ `prefers-reduced-motion` và tùy chọn giảm chuyển động trong game.
-- Nhấn `F3` để xem FPS ước tính, frame time trung bình/cao nhất, draw calls, triangles, geometry, texture, particle, decal và enemy count.
-
-## Công nghệ và cấu trúc
-
-- Three.js r128 được vendored tại `vendor/three.min.js`.
-- JavaScript thuần, classic script; không dùng ES modules, bundler, framework hoặc CDN.
-- WebAudio tạo âm thanh; Canvas 2D tạo minimap; enemy/weapon/props dùng glTF cục bộ, còn weakpoint và một số hiệu ứng gameplay vẫn procedural.
-- `start.bat` là launcher local; `index.html` vẫn là entry point.
+## Cấu trúc repository
 
 ```text
-skyward-salvage/
-├── index.html
-├── css/style.css
-├── js/
-│   ├── scifi_assets.js
-│   ├── scifi_loader.js
-│   ├── textures.js
-│   ├── decals.js
-│   ├── vfx.js
-│   ├── audio.js
-│   ├── music.js
-│   ├── particles.js
-│   ├── world.js
-│   ├── player.js
-│   ├── weapons.js
-│   ├── enemies.js
-│   ├── ui.js
-│   └── main.js
-├── assets/scifi/             # Quaternius CC0 local textures + license
-├── vendor/three.min.js
-├── start.bat
-├── README.md
-└── PHASE_COMPLETION_REPORT.md
+Skyward/
+├── index.html                 # Web entry point
+├── css/style.css              # Game UI và layout
+├── js/                        # Gameplay, UI, AI, audio, VFX, replay, RNG
+├── assets/scifi/              # Texture và license
+├── vendor/three.min.js        # Three.js r128
+├── app/                       # Android WebView wrapper và game asset mirror
+├── tools/qa/                  # Validator và unit tests
+├── .github/workflows/         # CI, Android APK, GitHub Pages deploy
+├── start.bat                  # Local launcher cho Windows
+├── ANDROID_BUILD.md           # Hướng dẫn build APK
+└── PHASE_*.md                 # QA checklist và phase reports
 ```
+
+Các file runtime trong `app/src/main/assets/game/` là bản mirror của `index.html`, `css/`, `js/`, `assets/` và `vendor/` dành cho Android WebView. Không xóa hoặc chỉnh riêng bản mirror; mọi thay đổi runtime phải được đồng bộ và kiểm tra parity.
+
+## Kiểm tra chất lượng
+
+Yêu cầu Node.js 20 trở lên. Chạy từ thư mục gốc repository:
+
+```bash
+node tools/qa/phase7.test.mjs
+node tools/qa/phase8.test.mjs
+node tools/qa/validate.mjs
+find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+```
+
+CI chạy validation, deterministic tests, adaptive-rendering tests và Android APK build. Xem trạng thái tại [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
+
+### Trạng thái xác minh
+
+- Automated source tests, repository validator, Web/Android mirror checks và Android debug APK build: đã được CI xác nhận PASS trên commit `388af719`.
+- Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
+- FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
+- Replay hiện ghi nhận keyboard/mouse; touch input và platform lifecycle chưa được bao phủ đầy đủ.
+- Khi WebGL context được khôi phục, runtime hiện reload trang thay vì khôi phục scene tại chỗ.
+
+## Phase documentation
+
+| Tài liệu | Phạm vi |
+|---|---|
+| [PHASE_COMPLETION_REPORT.md](PHASE_COMPLETION_REPORT.md) | Tổng hợp implementation Phase 0–5 |
+| [PHASE_6_QA.md](PHASE_6_QA.md) | QA, regression và benchmark |
+| [PHASE_7_QA.md](PHASE_7_QA.md) | Deterministic RNG, event bus và replay QA |
+| [PHASE_7_COMPLETION_REPORT.md](PHASE_7_COMPLETION_REPORT.md) | Kết quả triển khai Phase 7 |
+| [PHASE_8_QA.md](PHASE_8_QA.md) | Adaptive rendering và cross-platform QA |
+| [PHASE_8_COMPLETION_REPORT.md](PHASE_8_COMPLETION_REPORT.md) | Kết quả triển khai Phase 8 |
 
 ## Lưu dữ liệu
 
-Hồ sơ, cài đặt, mission đã chọn và điểm cao được lưu cục bộ trong trình duyệt. Xóa dữ liệu trang sẽ xóa các thông tin này. Bản phát hành không gửi dữ liệu ra máy chủ.
+Hồ sơ, cài đặt, mission đã chọn và điểm cao được lưu cục bộ trong trình duyệt. Xóa dữ liệu trang sẽ xóa các thông tin này. Bản game không gửi dữ liệu người chơi lên máy chủ.
