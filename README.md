@@ -166,7 +166,7 @@ The recorder exports FPS/frame-time percentiles, draw calls, triangles, geometry
 
 ## Phase 10 — Replay 2.0 & Cross-Platform Determinism
 
-Replay v2 records keyboard/mouse, touch joystick/look/actions and pause/resume transitions. It also compares quantized gameplay checkpoints every 120 frames, including player, weapon, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
+Replay v2 records keyboard/mouse, touch joystick/look/actions, pause/resume, abandon-to-menu and Endless upgrade selections. It snapshots look sensitivity/Y inversion and compares quantized gameplay checkpoints every 120 frames, including player, weapon ordnance, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
 
 Phase 9 remains the final system-wide QA/release gate and should be signed off after implementation phases are complete.
 
