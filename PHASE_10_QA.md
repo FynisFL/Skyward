@@ -26,9 +26,9 @@ Every 120 replay frames, the runtime emits a `replay:checkpoint` event. The chec
 
 - Mission, class, score, kills, shots, wave and run timers.
 - Player position/velocity, look rotation, health, movement/input state and active cooldowns.
-- Weapon selection, ammunition, cooldown, reload and aim/fire state.
+- Weapon selection, ammunition, cooldown, reload and aim/fire state, active grenades and scheduled airstrikes.
 - Wave state, spawn queue, enemy type/health/position/AI timers and active enemy projectiles.
-- Active pickup state and selected run upgrades.
+- Active pickup state (including bob phase/base height), selected run upgrades and enemy hit-reaction direction.
 - Seeded RNG state for gameplay, AI and weapon streams.
 
 Numeric gameplay values are rounded to three decimal places before comparison. The checkpoint event is added to the existing ordered event trace; divergence count is available from `window.__SKYWARD__.replay.status()`.
