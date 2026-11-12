@@ -552,6 +552,7 @@
     resizeGameRenderer();
   });
   window.addEventListener('skyward-native-back', () => {
+    benchmarkRecorder.stop('android-native-back');
     if (G.state === 'playing') pauseGame();
   });
 
@@ -948,6 +949,7 @@
 
   function pauseGame() {
     if (G.state !== 'playing') return;
+    benchmarkRecorder.stop('game-paused');
     G.state = 'paused';
     events.emit('game:paused', { mission: G.mission.id, wave: G.wave });
     releaseAllInputs();
