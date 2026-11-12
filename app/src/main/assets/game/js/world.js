@@ -158,7 +158,7 @@ const World = (() => {
   function createWorld(scene, quality) {
     const q = quality || 'med';
     const shadowOn = q === 'high';
-    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [], playerColliders: [], relayMotion: [] };
+    const world = { bounds: 54, groundY: 0, updatables: [], mood: 'clear', blinkers: [], lamps: [], sway: [], platforms: [], ramps: [], playerColliders: [], relayMotion: [], navigationRoutes: [] };
     
     // Phase 1: surface queries used by player vertical physics.
     function containsPlatform(p, x, z, inset = 0.18) {
@@ -185,6 +185,20 @@ const World = (() => {
       return this.getSpawnSurface(x, z).height;
     };
 
+    function rampContains(ramp, x, z, inset = 0) {
+      const dx = x - ramp.x, dz = z - ramp.z;
+      const c = Math.cos(ramp.yaw), s = Math.sin(ramp.yaw);
+      const lx = c * dx - s * dz, lz = s * dx + c * dz;
+      return Math.abs(lx) <= ramp.width * 0.5 - inset &&
+        Math.abs(lz) <= ramp.length * 0.5 - inset;
+    }
+
+    function rampHeightAt(ramp, x, z) {
+      const value = ramp.axis === 'x' ? x : z;
+      const t = (value - ramp.from) / (ramp.to - ramp.from);
+      return ramp.fromY + Math.max(0, Math.min(1, t)) * (ramp.toY - ramp.fromY);
+    }
+
     world.getWalkableSurface = function (x, z, feetY, maxStepUp = 0.45, maxStepDown = 0.55) {
       const minY = feetY - Math.max(0, maxStepDown) - 1e-4;
       const maxY = feetY + Math.max(0, maxStepUp) + 1e-4;
@@ -199,6 +213,13 @@ const World = (() => {
         if (!surface || p.topY > surface.height) {
           surface = { height: p.topY, collider: p.collider || null };
         }
+      }
+      for (let i = 0; i < this.ramps.length; i++) {
+        const ramp = this.ramps[i];
+        if (!rampContains(ramp, x, z, -0.12)) continue;
+        const height = rampHeightAt(ramp, x, z);
+        if (height < minY || height > maxY) continue;
+        if (!surface || height > surface.height) surface = { height, collider: null };
       }
       return surface;
     };
@@ -223,6 +244,13 @@ const World = (() => {
         if (!surface || p.topY > surface.height) {
           surface = { height: p.topY, collider: p.collider || null };
         }
+      }
+      for (let i = 0; i < this.ramps.length; i++) {
+        const ramp = this.ramps[i];
+        if (!rampContains(ramp, x, z, -0.12)) continue;
+        const height = rampHeightAt(ramp, x, z);
+        if (fromFeetY < height - 1e-4 || toFeetY > height + 1e-4) continue;
+        if (!surface || height > surface.height) surface = { height, collider: null };
       }
       return surface;
     };
@@ -453,6 +481,34 @@ const World = (() => {
       }
     }
 
+    function addRamp(def) {
+      const length = Math.hypot(def.toX - def.fromX, def.toZ - def.fromZ);
+      const rise = def.toY - def.fromY;
+      const axis = Math.abs(def.toX - def.fromX) >= Math.abs(def.toZ - def.fromZ) ? 'x' : 'z';
+      const from = axis === 'x' ? def.fromX : def.fromZ;
+      const to = axis === 'x' ? def.toX : def.toZ;
+      const yaw = axis === 'x' ? 0 : 0;
+      const angle = Math.atan2(Math.abs(rise), length) * Math.sign(
+        axis === 'z' ? rise : rise * Math.sign(def.toX - def.fromX)
+      );
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(def.width, 0.22, length), def.material || armorMat);
+      mesh.position.set((def.fromX + def.toX) * 0.5, (def.fromY + def.toY) * 0.5, (def.fromZ + def.toZ) * 0.5);
+      if (axis === 'z') mesh.rotation.x = angle;
+      else mesh.rotation.z = angle;
+      mesh.castShadow = shadowOn;
+      mesh.receiveShadow = true;
+      mesh.userData.navigationRamp = true;
+      mesh.userData.decorativeOnly = false;
+      scene.add(mesh);
+      const ramp = {
+        x: mesh.position.x, z: mesh.position.z, yaw, axis, from, to,
+        fromY: def.fromY, toY: def.toY, width: def.width, length,
+        mesh
+      };
+      world.ramps.push(ramp);
+      return ramp;
+    }
+
     // Main sectors: landing dock, command deck, maintenance deck and cargo deck.
     addDeck({ x: 0, z: 30, w: 24, d: 14, h: 0.36, baseY: 0 });
     addDeck({ x: 0, z: -27, w: 20, d: 12, h: 1.2, baseY: 0 });
@@ -468,6 +524,29 @@ const World = (() => {
     addStepRun({ x: 14.6, z: -4, axis: 'x', direction: 1, count: 3, rise: 0.3, depth: 1.8, width: 7 });
     addStepRun({ x: -31.9, z: 25, axis: 'x', direction: -1, count: 2, rise: 0.3, depth: 1.8, width: 7 });
     addStepRun({ x: 31.9, z: 25, axis: 'x', direction: 1, count: 2, rise: 0.3, depth: 1.8, width: 7 });
+
+    // Independent ramps run beside the stairs; both use the same surface queries.
+    addRamp({ fromX: 4.4, toX: 4.4, fromZ: -14.7, toZ: -21.0, fromY: 0, toY: 1.2, width: 3.2 });
+    addRamp({ fromX: -14.5, toX: -20.0, fromZ: 2.0, toZ: 2.0, fromY: 0, toY: 0.9, width: 3.2 });
+    addRamp({ fromX: 14.5, toX: 20.0, fromZ: 2.0, toZ: 2.0, fromY: 0, toY: 0.9, width: 3.2 });
+
+    // Explicit region graph: all four mission sectors connect to the central deck.
+    world.navigationRoutes = [
+      { from: 'landing-dock', to: 'central-service-deck', via: 'ground-level approach' },
+      { from: 'central-service-deck', to: 'command-hangar', via: 'north stairs + ramp' },
+      { from: 'central-service-deck', to: 'maintenance-bay', via: 'west stairs + ramp' },
+      { from: 'central-service-deck', to: 'cargo-depot', via: 'east stairs + ramp' }
+    ];
+    world.validateNavigationRoutes = function () {
+      const required = ['landing-dock', 'command-hangar', 'maintenance-bay', 'cargo-depot'];
+      const connected = new Set(['central-service-deck', 'landing-dock']);
+      this.navigationRoutes.forEach(route => {
+        if (connected.has(route.from)) connected.add(route.to);
+        if (connected.has(route.to)) connected.add(route.from);
+      });
+      return required.every(region => connected.has(region)) &&
+        this.ramps.length === 3 && this.platforms.length >= 15;
+    };
 
     // Metallic edge bands make each deck read as installed infrastructure.
     const deckEdgeMat = new THREE.MeshStandardMaterial({ color: 0x182733, roughness: 0.52, metalness: 0.82 });
@@ -748,9 +827,12 @@ const World = (() => {
       const g = new THREE.Group();
       const top = new THREE.Mesh(new THREE.CylinderGeometry(5.8 * d.s, 6.2 * d.s, 0.85, 18), hullMat);
       top.position.y = 0;
+      // Relay islands are visual landmarks only: never register them as walkable or solid. 
+      top.userData.decorativeOnly = true;
       const bottom = new THREE.Mesh(new THREE.ConeGeometry(5.5 * d.s, 8.5 * d.s, 14), islandRockMat);
       bottom.rotation.x = Math.PI;
       bottom.position.y = -4.4 * d.s;
+      bottom.userData.decorativeOnly = true;
       g.add(top, bottom);
       const relayMast = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * d.s, 0.28 * d.s, 3.2 * d.s, 8), armorMat);
       relayMast.position.y = 2.0 * d.s;
@@ -876,7 +958,7 @@ const World = (() => {
     // Register explicitly solid meshes. Can be called again for late-loaded static assets.
     const registeredColliderMeshes = new WeakSet();
     function registerPlayerColliderMesh(o) {
-      if (!o.isMesh || !(o.userData.playerSolid === true || o.userData.blocksBullets === true)) return;
+      if (!o.isMesh || o.userData.decorativeOnly === true || !(o.userData.playerSolid === true || o.userData.blocksBullets === true)) return;
       if (registeredColliderMeshes.has(o)) return;
       if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
       const localBox = o.geometry.boundingBox;
