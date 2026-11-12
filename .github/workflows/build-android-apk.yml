@@ -36,6 +36,9 @@ jobs:
         run: |
           find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Run Skyward QA checks
+        run: node tools/qa/validate.mjs
+
       - name: Verify web and Android assets are identical
         run: |
           cmp index.html app/src/main/assets/game/index.html
