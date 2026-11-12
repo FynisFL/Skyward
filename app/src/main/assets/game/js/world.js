@@ -162,6 +162,9 @@ const World = (() => {
     
     // Phase 1: surface queries used by player vertical physics.
     function containsPlatform(p, x, z, inset = 0.18) {
+      if (Number.isFinite(p.radius)) {
+        return Math.hypot(x - p.x, z - p.z) <= Math.max(0, p.radius - inset);
+      }
       const halfW = Math.max(0, p.w * 0.5 - inset);
       const halfD = Math.max(0, p.d * 0.5 - inset);
       return Math.abs(x - p.x) <= halfW && Math.abs(z - p.z) <= halfD;
@@ -232,6 +235,11 @@ const World = (() => {
 
         const dx = x - c.x;
         const dz = z - c.z;
+        if (c.shape === 'circle') {
+          const combinedRadius = radius + c.radius;
+          if (dx * dx + dz * dz < combinedRadius * combinedRadius) return true;
+          continue;
+        }
         const cos = Math.cos(c.yaw);
         const sin = Math.sin(c.yaw);
         const localX = cos * dx - sin * dz;
@@ -339,6 +347,7 @@ const World = (() => {
 
     const base = new THREE.Mesh(new THREE.CylinderGeometry(7.5, 9.5, 3.2, 28), baseMat);
     base.position.y = 1.6;
+    base.userData.playerSolid = true;
     turbine.add(base);
 
     for (let i = 0; i < 5; i++) {
@@ -349,6 +358,7 @@ const World = (() => {
 
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 2.4, 20, 22), mastMat);
     mast.position.y = 13;
+    mast.userData.playerSolid = true;
     turbine.add(mast);
 
     for (let i = 0; i < 4; i++) {
@@ -357,6 +367,7 @@ const World = (() => {
       strut.position.set(Math.cos(a) * 6.2, 7, Math.sin(a) * 6.2);
       strut.rotation.z = Math.cos(a) * 0.34;
       strut.rotation.x = -Math.sin(a) * 0.34;
+      strut.userData.playerSolid = true;
       turbine.add(strut);
     }
 
@@ -422,7 +433,11 @@ const World = (() => {
     arch.add(portal);
     const plinth = new THREE.Mesh(new THREE.BoxGeometry(19, 1.2, 5), baseMat);
     plinth.position.y = 0.6;
+    plinth.userData.playerSolid = true;
+    plinth.userData.platform = true;
+    plinth.userData.blocksBullets = true;
     arch.add(plinth);
+    world.platforms.push({ x: 0, z: -34, w: 19, d: 5, topY: 1.2, baseY: 0, height: 1.2 });
     arch.position.set(0, 0, -34);
     arch.traverse(o => { if (o.isMesh) { o.castShadow = shadowOn; o.receiveShadow = shadowOn; } });
     scene.add(arch);
@@ -544,6 +559,15 @@ const World = (() => {
       dummy.scale.set(sc, sc * 0.8, sc);
       dummy.updateMatrix();
       rocks.setMatrixAt(i, dummy.matrix);
+      world.playerColliders.push({
+        x: dummy.position.x,
+        z: dummy.position.z,
+        shape: 'circle',
+        radius: sc * 0.82,
+        minY: dummy.position.y - sc * 0.8,
+        maxY: dummy.position.y + sc * 0.8,
+        yaw: 0
+      });
     }
     rocks.instanceMatrix.needsUpdate = true;
     rocks.castShadow = shadowOn;
@@ -577,7 +601,11 @@ const World = (() => {
     const pad = new THREE.Mesh(new THREE.CylinderGeometry(9, 9, 0.24, 40), plateMat);
     pad.position.set(0, 0.12, 30);
     pad.receiveShadow = true;
+    pad.userData.playerSolid = true;
+    pad.userData.platform = true;
+    pad.userData.blocksBullets = true;
     props.add(pad);
+    world.platforms.push({ x: 0, z: 30, radius: 9, topY: 0.24, baseY: 0, height: 0.24 });
     const padRing = new THREE.Mesh(new THREE.TorusGeometry(7.6, 0.3, 8, 48), hazardMat);
     padRing.rotation.x = Math.PI / 2;
     padRing.position.set(0, 0.28, 30);
@@ -627,6 +655,7 @@ const World = (() => {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8), darkMat);
       post.position.set(s[0], 1.2, s[1]);
       post.castShadow = shadowOn;
+      post.userData.playerSolid = true;
       props.add(post);
       const board = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.0), hazardMat);
       board.position.set(s[0], 2.3, s[1]);
@@ -661,11 +690,13 @@ const World = (() => {
     const antenna = new THREE.Group();
     const aMast = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.26, 16, 10), mastMat);
     aMast.position.y = 8;
+    aMast.userData.playerSolid = true;
     antenna.add(aMast);
     for (let i = 0; i < 4; i++) {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(3.2 - i * 0.5, 0.08, 0.08), mastMat);
       bar.position.y = 12 + i * 1.1;
       bar.rotation.y = i * 0.6;
+      bar.userData.playerSolid = true;
       antenna.add(bar);
     }
     const aLight = makeBlinkingLight(0xff3b2f);
@@ -681,8 +712,10 @@ const World = (() => {
     const wreck1 = new THREE.Group();
     const wBody = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 2.4), rustMat);
     wBody.position.y = 1.1;
+    wBody.userData.playerSolid = true;
     const wStack = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.4, 3.4, 12), rustMat);
     wStack.position.set(-0.9, 1.7, -0.5);
+    wStack.userData.playerSolid = true;
     wreck1.add(wBody, wStack);
     wreck1.position.set(28, 0, 22);
     wreck1.rotation.set(0.06, 0.7, 0.1);
@@ -693,9 +726,11 @@ const World = (() => {
     const w2Body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 3.0, 16), rustMat);
     w2Body.rotation.z = Math.PI / 2;
     w2Body.position.y = 1.5;
+    w2Body.userData.playerSolid = true;
     wreck2.add(w2Body);
     const w2Fin = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.2, 1.6), rustMat);
     w2Fin.position.set(0, 3.0, 0);
+    w2Fin.userData.playerSolid = true;
     wreck2.add(w2Fin);
     wreck2.position.set(-26, 0, 18);
     wreck2.rotation.y = -0.5;
@@ -725,6 +760,7 @@ const World = (() => {
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 6.4, 10), darkMat);
       pole.position.set(p[0], 3.2, p[1]);
       pole.castShadow = shadowOn;
+      pole.userData.playerSolid = true;
       props.add(pole);
       const headMat = new THREE.MeshStandardMaterial({ color: 0xfff0c8, emissive: 0xffd9a0, emissiveIntensity: 1.8 });
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.22, 0.4), headMat);
@@ -801,11 +837,14 @@ const World = (() => {
         2 * (worldRotation.w * worldRotation.y + worldRotation.x * worldRotation.z),
         1 - 2 * (worldRotation.y * worldRotation.y + worldRotation.x * worldRotation.x)
       );
+      const isRound = o.geometry.type === 'CylinderGeometry' || o.geometry.type === 'ConeGeometry';
       world.playerColliders.push({
         object: o,
         x: worldCenter.x,
         z: worldCenter.z,
         yaw: yaw,
+        shape: isRound ? 'circle' : 'box',
+        radius: Math.max(localSize.x * Math.abs(worldScale.x), localSize.z * Math.abs(worldScale.z)) * 0.5,
         halfX: Math.max(0.01, localSize.x * Math.abs(worldScale.x) * 0.5),
         halfZ: Math.max(0.01, localSize.z * Math.abs(worldScale.z) * 0.5),
         minY: worldBounds.min.y,
