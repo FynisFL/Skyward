@@ -1304,6 +1304,9 @@
         timer: replayNumber(waves.timer),
         spawnTimer: replayNumber(waves.spawnTimer),
         spawnQueue: waves.spawnQueue.slice(),
+        mods: Object.assign({}, waves.mods),
+        endless: !!waves.endless,
+        waveTotal: Number.isFinite(waves.waveTotal) ? waves.waveTotal : 'infinite',
         enemies: waves.enemies.map(enemy => ({
           type: enemy.type,
           alive: !!enemy.alive,
@@ -1316,6 +1319,7 @@
           strafePhase: replayNumber(enemy.strafePhase),
           strafeDir: replayNumber(enemy.strafeDir),
           flinchTime: replayNumber(enemy.flinchT),
+          flinchDirection: replayVector(enemy.flinchDir),
           deathTime: replayNumber(enemy.deathT),
           projectiles: (enemy.projectiles || []).map(projectile => ({
             position: replayVector(projectile.mesh && projectile.mesh.position),
@@ -1328,6 +1332,8 @@
       pickups: pickups.map(pickup => ({
         type: pickup.type,
         life: replayNumber(pickup.life),
+        baseY: replayNumber(pickup.mesh && pickup.mesh.userData.baseY),
+        phase: replayNumber(pickup.mesh && pickup.mesh.userData.phase),
         position: replayVector(pickup.mesh && pickup.mesh.position)
       })),
       upgrades: offeredUpgradeIds.slice(),
