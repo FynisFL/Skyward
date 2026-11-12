@@ -70,7 +70,22 @@ class Enemy {
     this.score = cfg.score;
     this.moveSpeed = cfg.speed; this.fireRate = cfg.fireRate;
     this.fireTimer = 1.2 + SkywardRNG.random('ai') * cfg.fireRate;
-    this.spawnT = 0.7;
+    this.combatProfile = window.SkywardCombatAI ? window.SkywardCombatAI.getProfile(type) : null;
+    this.attackState = 'idle';
+    this.attackKind = '';
+    this.attackTimer = 0;
+    this.attackCooldown = (type === 'speeder' || type === 'brute')
+      ? 1.2 + SkywardRNG.random('ai') * 0.8 : 0;
+    this.attackTarget = new THREE.Vector3();
+    this.attackDirection = new THREE.Vector3();
+    this.attackHit = false;
+    this.attackMovement = new THREE.Vector3();
+    this.staggerMeter = 0;
+    this.bossPhase = this.isBoss ? 1 : 0;
+    this.weakpointOpenT = 0;
+    this.telegraphLine = null;
+    this.telegraphMarker = null;
+    this.spawnT = 0;
     this.strafePhase = SkywardRNG.random('ai') * Math.PI * 2;
     this.strafeDir = SkywardRNG.random('ai') < 0.5 ? 1 : -1;
     this.bobPhase = SkywardRNG.random('ai') * Math.PI * 2;
@@ -211,6 +226,200 @@ class Enemy {
 
     this.baseY = cfg.hover;
     g.position.y = this.baseY;
+    this._createTelegraphVisuals();
+  }
+
+  _emitCombatEvent(type, payload) {
+    const bus = window.SkywardEvents;
+    if (bus && typeof bus.emit === 'function') {
+      bus.emit(type, Object.assign({ enemyType: this.type, boss: !!this.isBoss }, payload || {}));
+    }
+  }
+
+  _createTelegraphVisuals() {
+    if (this.type === 'brute') {
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xff493d, transparent: true, opacity: 0.48,
+        side: THREE.DoubleSide, depthWrite: false
+      });
+      this.telegraphMarker = new THREE.Mesh(new THREE.RingGeometry(0.94, 1, 48), material);
+      this.telegraphMarker.rotation.x = -Math.PI / 2;
+      this.telegraphMarker.position.y = 0.1;
+      this.telegraphMarker.renderOrder = 5;
+      this.telegraphMarker.visible = false;
+      this.scene.add(this.telegraphMarker);
+      return;
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const material = new THREE.LineBasicMaterial({
+      color: this.isBoss ? 0xff3159 : (this.type === 'speeder' ? 0xffa34d : 0xff5948),
+      transparent: true, opacity: 0.82, depthWrite: false
+    });
+    this.telegraphLine = new THREE.Line(geometry, material);
+    this.telegraphLine.frustumCulled = false;
+    this.telegraphLine.visible = false;
+    this.telegraphLine.renderOrder = 5;
+    this.scene.add(this.telegraphLine);
+  }
+
+  _beginTelegraph(kind, target, duration) {
+    this.attackState = 'telegraph';
+    this.attackKind = kind;
+    this.attackTimer = duration;
+    this.attackHit = false;
+    this.attackTarget.copy(target);
+    this._updateTelegraphVisual();
+    this._emitCombatEvent('enemy:telegraph', {
+      attack: kind,
+      duration: Number(duration.toFixed(3)),
+      target: { x: Number(target.x.toFixed(3)), y: Number(target.y.toFixed(3)), z: Number(target.z.toFixed(3)) },
+      phase: this.bossPhase || null
+    });
+  }
+
+  _updateTelegraphVisual() {
+    if (this.telegraphLine) {
+      const attribute = this.telegraphLine.geometry.getAttribute('position');
+      const array = attribute.array;
+      const from = this.group.position;
+      array[0] = from.x;
+      array[1] = from.y + 0.18;
+      array[2] = from.z;
+      array[3] = this.attackTarget.x;
+      array[4] = this.attackTarget.y;
+      array[5] = this.attackTarget.z;
+      attribute.needsUpdate = true;
+      this.telegraphLine.visible = this.attackState === 'telegraph';
+    }
+    if (this.telegraphMarker) {
+      this.telegraphMarker.position.set(this.attackTarget.x, 0.1, this.attackTarget.z);
+      const pulse = 0.94 + Math.sin(this.attackTimer * 13) * 0.045;
+      this.telegraphMarker.scale.setScalar(pulse);
+      this.telegraphMarker.material.opacity = 0.38 + Math.sin(this.attackTimer * 16) * 0.08;
+      this.telegraphMarker.visible = this.attackState === 'telegraph';
+    }
+  }
+
+  _hideTelegraph() {
+    if (this.telegraphLine) this.telegraphLine.visible = false;
+    if (this.telegraphMarker) this.telegraphMarker.visible = false;
+  }
+
+  _enterRecover(duration, cooldown) {
+    this._hideTelegraph();
+    this.attackState = 'recover';
+    this.attackKind = '';
+    this.attackTimer = Math.max(0, duration || 0);
+    if (Number.isFinite(cooldown)) this.attackCooldown = Math.max(this.attackCooldown, cooldown);
+  }
+
+  isWeakpointExposed() {
+    return !!(this.isBoss && this.weakpointOpenT > 0);
+  }
+
+  _updateCommanderPhase() {
+    if (!this.isBoss || !window.SkywardCombatAI) return;
+    const nextPhase = window.SkywardCombatAI.getCommanderPhase(this.hp, this.maxHp);
+    if (nextPhase === this.bossPhase) return;
+    this.bossPhase = nextPhase;
+    this.moveSpeed = nextPhase >= 3 ? 2.8 : (nextPhase === 2 ? 2.3 : 1.9);
+    this.fireRate = nextPhase >= 3 ? 0.76 : (nextPhase === 2 ? 0.94 : 1.2);
+    this._emitCombatEvent('enemy:phase', { phase: nextPhase, hpRatio: Number((this.hp / this.maxHp).toFixed(3)) });
+  }
+
+  _updateAttackState(dt, player, distance, onPlayerHit) {
+    const profile = this.combatProfile || (window.SkywardCombatAI && window.SkywardCombatAI.getProfile(this.type));
+    if (!profile) return;
+
+    if (this.weakpointOpenT > 0) this.weakpointOpenT = Math.max(0, this.weakpointOpenT - dt);
+    if (this.staggerMeter > 0) this.staggerMeter = Math.max(0, this.staggerMeter - dt * profile.staggerThreshold * 0.22);
+    if (this.attackCooldown > 0) this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+
+    this._updateCommanderPhase();
+
+    if (this.attackState === 'telegraph') {
+      this.attackTimer -= dt;
+      this._updateTelegraphVisual();
+      if (this.attackTimer <= 0) {
+        this._hideTelegraph();
+        if (this.attackKind === 'charge') {
+          this.attackDirection.subVectors(this.attackTarget, this.group.position);
+          this.attackDirection.y = 0;
+          if (this.attackDirection.lengthSq() < 0.001) this.attackDirection.set(0, 0, -1);
+          this.attackDirection.normalize();
+          this.attackState = 'lunge';
+          this.attackTimer = profile.chargeDuration;
+          this._emitCombatEvent('enemy:attack', { attack: 'charge', phase: null });
+        } else if (this.attackKind === 'slam') {
+          const hit = window.SkywardCombatAI.isInsideRadialAttack(
+            this.attackTarget.x, this.attackTarget.z,
+            player.pos.x, player.pos.z,
+            profile.slamRadius
+          );
+          this._emitCombatEvent('enemy:attack', { attack: 'ground-slam', hit: hit });
+          if (hit && typeof onPlayerHit === 'function') {
+            onPlayerHit(profile.damage, this.attackTarget.clone(), { source: 'brute-slam', enemyType: this.type });
+          }
+          const cooldown = profile.cooldown * (0.88 + SkywardRNG.random('ai') * 0.24);
+          this._enterRecover(profile.recover, cooldown);
+        } else if (this.attackKind === 'volley') {
+          this.shootAt(this.attackTarget, this.bossPhase);
+          this.weakpointOpenT = profile.weakpointWindow;
+          this._emitCombatEvent('enemy:weakpoint-open', { phase: this.bossPhase, duration: profile.weakpointWindow });
+          this.fireTimer = this.fireRate * (0.8 + SkywardRNG.random('ai') * 0.5);
+          this._enterRecover(profile.recover, 0);
+        } else {
+          this.shootAt(this.attackTarget, 1);
+          this.fireTimer = this.fireRate * (0.8 + SkywardRNG.random('ai') * 0.5);
+          this._enterRecover(0.18, 0);
+        }
+      }
+      return;
+    }
+
+    if (this.attackState === 'lunge') {
+      this.attackTimer -= dt;
+      return;
+    }
+
+    if (this.attackState === 'recover') {
+      this.attackTimer -= dt;
+      if (this.attackTimer <= 0) {
+        this.attackState = 'idle';
+        this.attackKind = '';
+      }
+      return;
+    }
+
+    if (this.type === 'speeder' && this.attackCooldown <= 0 &&
+        window.SkywardCombatAI.isInChargeWindow(distance, profile) && !player.dead) {
+      const target = player.pos.clone();
+      target.y -= 1.25;
+      this._beginTelegraph('charge', target, profile.windup);
+      return;
+    }
+
+    if (this.type === 'brute' && this.attackCooldown <= 0 &&
+        distance <= profile.slamRange && !player.dead) {
+      const target = player.pos.clone();
+      target.y = Math.max(0.08, player.pos.y - player.eyeHeight);
+      this._beginTelegraph('slam', target, profile.windup);
+      return;
+    }
+
+    if (this.type === 'drone' || this.isBoss) {
+      const squadPressure = !this.isBoss && Array.isArray(this._allies) &&
+        this._allies.some(other => other !== this && other.alive && other.type === 'brute' &&
+          Math.hypot(other.group.position.x - player.pos.x, other.group.position.z - player.pos.z) < 10);
+      this.fireTimer -= dt * (squadPressure ? 1.16 : 1);
+      if (this.fireTimer <= 0 && distance < this.cfg.range * 1.8 && !player.dead) {
+        const target = player.pos.clone();
+        target.y -= 0.85;
+        this._beginTelegraph(this.isBoss ? 'volley' : 'shot', target, profile.windup);
+      }
+    }
   }
 
   _playAssetAnimation(preferred) {
@@ -240,6 +449,18 @@ class Enemy {
   takeDamage(amount, point) {
     if (!this.alive) return false;
     this.hp -= amount;
+    const profile = this.combatProfile || (window.SkywardCombatAI && window.SkywardCombatAI.getProfile(this.type));
+    if (profile && this.attackState === 'telegraph' && window.SkywardCombatAI) {
+      const stagger = window.SkywardCombatAI.addStagger(this.staggerMeter, amount, profile.staggerThreshold);
+      this.staggerMeter = stagger.value;
+      if (stagger.interrupted) {
+        const interruptedAttack = this.attackKind;
+        this._enterRecover(0.46, Math.max(this.attackCooldown, this.isBoss ? 0.85 : 0.55));
+        if (this.type === 'drone' || this.isBoss) this.fireTimer = Math.max(this.fireTimer, this.fireRate * 0.85);
+        this._emitCombatEvent('enemy:staggered', { interruptedAttack: interruptedAttack, damage: Number(amount.toFixed(3)) });
+      }
+    }
+    this._updateCommanderPhase();
     this.assetHitT = 0.18;
     this._playAssetAnimation('Hit');
     this.bodyMat.emissiveIntensity = this.isBoss ? 1.25 : 0.7;
@@ -287,6 +508,7 @@ class Enemy {
   die() {
     if (!this.alive) return;
     this.alive = false;
+    this._hideTelegraph();
     this._clearProjectiles();
     this.deathT = 0.45;
     this._playAssetAnimation('TurnOff');
@@ -316,14 +538,14 @@ class Enemy {
     return false;
   }
 
-  update(dt, player, bounds, others, world) {
+  update(dt, player, bounds, others, world, onPlayerHit) {
     if (!this.alive) return;
     this.t += dt;
     if (this.assetMixer) this.assetMixer.update(dt);
     if (this.assetAttackT > 0) this.assetAttackT = Math.max(0, this.assetAttackT - dt);
     if (this.assetHitT > 0) this.assetHitT = Math.max(0, this.assetHitT - dt);
 
-    // spawn animation
+    // Spawn animation remains non-interactive until the enemy is fully deployed.
     if (this.spawnT > 0) {
       this.spawnT -= dt;
       const f = 1 - Math.max(0, this.spawnT / 0.7);
@@ -338,30 +560,45 @@ class Enemy {
     toPlayer.y = 0;
     const dist = toPlayer.length();
     const dir = dist > 0.001 ? toPlayer.clone().divideScalar(dist) : new THREE.Vector3(1, 0, 0);
+    const profile = this.combatProfile || window.SkywardCombatAI.getProfile(this.type);
 
-    // giữ khoảng cách + trào ngang
+    this._allies = others || [];
+    this._updateAttackState(dt, player, dist, onPlayerHit);
+
+    // Role-specific movement: supports hold a firing lane, speeders sweep the flank,
+    // and brutes occupy the frontline rather than retreating into another firing lane.
     const move = new THREE.Vector3();
-    if (dist > this.cfg.range) move.add(dir);
-    else if (dist < this.cfg.range * 0.55) move.sub(dir);
-    const side = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(Math.sin(this.t * 1.1 + this.strafePhase) * this.strafeDir);
-    move.add(side.multiplyScalar(0.7));
+    if (this.attackState === 'lunge') {
+      move.copy(this.attackDirection);
+    } else if (this.attackState !== 'telegraph' && this.attackState !== 'recover') {
+      const intent = window.SkywardCombatAI.getMovementIntent(this.type, dist);
+      if (intent === 'advance') move.add(dir);
+      else if (intent === 'retreat') move.sub(dir);
+      const side = new THREE.Vector3(-dir.z, 0, dir.x);
+      const orbit = Math.sin(this.t * (this.type === 'speeder' ? 1.65 : 1.1) + this.strafePhase) * this.strafeDir;
+      const sideWeight = intent === 'flank' ? profile.strafe * (0.85 + Math.abs(orbit) * 0.3) : profile.strafe * orbit;
+      move.add(side.multiplyScalar(sideWeight));
+    }
 
-    // tách đàn
-    if (others) {
+    // Squad spacing preserves readable lanes while leaving room for distinct roles.
+    if (others && this.attackState !== 'lunge') {
       for (let i = 0; i < others.length; i++) {
-        const o = others[i];
-        if (o === this || !o.alive) continue;
-        const d = new THREE.Vector3().subVectors(pos, o.group.position);
-        d.y = 0;
-        const l = d.length();
-        const min = this.radius + o.radius + 1.2;
-        if (l > 0.001 && l < min) move.add(d.divideScalar(l).multiplyScalar((min - l) * 0.9));
+        const other = others[i];
+        if (other === this || !other.alive) continue;
+        const separation = new THREE.Vector3().subVectors(pos, other.group.position);
+        separation.y = 0;
+        const length = separation.length();
+        const minimum = this.radius + other.radius + 1.2;
+        if (length > 0.001 && length < minimum) {
+          move.add(separation.divideScalar(length).multiplyScalar((minimum - length) * 0.9));
+        }
       }
     }
 
     if (move.lengthSq() > 0.001) {
       const desired = move.clone().normalize();
-      const travel = this.moveSpeed * dt;
+      const lunge = this.attackState === 'lunge';
+      const travel = (lunge ? profile.chargeSpeed : this.moveSpeed) * dt;
       const blockedAt = (x, z) => world && typeof world.isEnemyBlocked === 'function'
         ? world.isEnemyBlocked(x, z, pos.y, this.radius)
         : false;
@@ -371,42 +608,60 @@ class Enemy {
         pos.x = nextX;
         pos.z = nextZ;
       } else {
-        // Probe shallow steering offsets around the direct route; choose the
-        // clear candidate that makes the most progress toward the player.
-        const angles = [0.55, -0.55, 1.05, -1.05, 1.57, -1.57, 2.1, -2.1];
+        const angles = lunge ? [0.32, -0.32, 0.62, -0.62] : [0.55, -0.55, 1.05, -1.05, 1.57, -1.57, 2.1, -2.1];
         let best = null, bestScore = Infinity;
         for (let i = 0; i < angles.length; i++) {
-          const a = angles[i], c = Math.cos(a), s = Math.sin(a);
-          const sx = desired.x * c - desired.z * s;
-          const sz = desired.x * s + desired.z * c;
+          const angle = angles[i], cosine = Math.cos(angle), sine = Math.sin(angle);
+          const sx = desired.x * cosine - desired.z * sine;
+          const sz = desired.x * sine + desired.z * cosine;
           const tx = pos.x + sx * travel, tz = pos.z + sz * travel;
           if (blockedAt(tx, tz)) continue;
-          const score = Math.hypot(player.pos.x - tx, player.pos.z - tz) +
-            Math.abs(a) * 0.12;
+          const score = Math.hypot(player.pos.x - tx, player.pos.z - tz) + Math.abs(angle) * (lunge ? 0.8 : 0.12);
           if (score < bestScore) { bestScore = score; best = { x: tx, z: tz }; }
         }
         if (best) { pos.x = best.x; pos.z = best.z; }
       }
     }
 
-    // giới hạn sân
-    const rr = Math.hypot(pos.x, pos.z);
-    if (rr > bounds) { pos.x *= bounds / rr; pos.z *= bounds / rr; }
+    const arenaRadius = Math.hypot(pos.x, pos.z);
+    if (arenaRadius > bounds) { pos.x *= bounds / arenaRadius; pos.z *= bounds / arenaRadius; }
 
-    // bay + nhìn
-    pos.y = this.baseY + Math.sin(this.t * 2 + this.bobPhase) * 0.35;
-    this.group.lookAt(player.pos.x, pos.y, player.pos.z);
-    this.ring.rotation.z += dt * 2.4;
-    if (this.rotorGroup) this.rotorGroup.rotation.y += dt * 4.8;
-    if (this.speederRings) this.speederRings.forEach((r, i) => { r.rotation.x += dt * (i ? -5.5 : 5.5); });
-    if (this.bossPods) this.bossPods.forEach((pod, i) => { pod.rotation.y += dt * (i - 1) * 0.7; });
-    if (this.core) {
-      const pulse = 1 + Math.sin(this.t * 5.5) * 0.09;
-      const phaseScale = this.hp / this.maxHp < 0.3 ? 1.5 : this.hp / this.maxHp < 0.65 ? 1.25 : 1;
-      this.core.scale.setScalar(phaseScale * pulse);
+    // Resolve the speeder's charge only after movement; a player can dodge the locked lane.
+    if (this.attackState === 'lunge') {
+      const contactDistance = Math.hypot(player.pos.x - pos.x, player.pos.z - pos.z);
+      if (!this.attackHit && contactDistance <= profile.hitRadius && !player.dead) {
+        this.attackHit = true;
+        this._emitCombatEvent('enemy:attack', { attack: 'charge-hit', damage: profile.damage });
+        if (typeof onPlayerHit === 'function') {
+          onPlayerHit(profile.damage, pos.clone(), { source: 'speeder-charge', enemyType: this.type });
+        }
+        this._enterRecover(profile.recover, profile.cooldown * (0.88 + SkywardRNG.random('ai') * 0.24));
+      } else if (this.attackTimer <= 0) {
+        this._emitCombatEvent('enemy:attack', { attack: 'charge-missed' });
+        this._enterRecover(profile.recover * 0.7, profile.cooldown * (0.88 + SkywardRNG.random('ai') * 0.24));
+      }
     }
 
-    // flinch khi trúng đạn
+    pos.y = this.baseY + Math.sin(this.t * 2 + this.bobPhase) * 0.35;
+    if (this.attackState === 'lunge') {
+      this.group.lookAt(pos.x + this.attackDirection.x, pos.y, pos.z + this.attackDirection.z);
+    } else {
+      this.group.lookAt(player.pos.x, pos.y, player.pos.z);
+    }
+    this.ring.rotation.z += dt * (this.type === 'speeder' ? 3.8 : 2.4);
+    if (this.rotorGroup) this.rotorGroup.rotation.y += dt * 4.8;
+    if (this.speederRings) this.speederRings.forEach((ring, index) => { ring.rotation.x += dt * (index ? -7.2 : 7.2); });
+    if (this.bossPods) this.bossPods.forEach((pod, index) => { pod.rotation.y += dt * (index - 1) * 0.7; });
+    if (this.core) {
+      const pulse = 1 + Math.sin(this.t * 5.5) * 0.09;
+      const phaseScale = this.bossPhase >= 3 ? 1.5 : this.bossPhase === 2 ? 1.25 : 1;
+      this.core.scale.setScalar(phaseScale * pulse);
+      if (this.core.material && this.core.material.emissiveIntensity !== undefined) {
+        this.core.material.emissiveIntensity = this.isWeakpointExposed() ? 3.2 : (this.bossPhase >= 3 ? 0.9 : 0.48);
+      }
+    }
+
+    // Hit reactions can interrupt a telegraph; otherwise this block remains visual-only.
     if (this.flinchT > 0) {
       this.flinchT -= dt;
       const f = Math.max(0, this.flinchT / 0.14);
@@ -423,43 +678,60 @@ class Enemy {
       if (this.assetMaterials) this.assetMaterials.forEach(mat => { if (mat.emissive) mat.emissiveIntensity += (baseEmissive - mat.emissiveIntensity) * Math.min(1, dt * 6); });
     }
 
-    // Chọn clip phù hợp với trạng thái di chuyển/tấn công của model glTF.
-    if (this.assetMixer) this._playAssetAnimation(this.assetHitT > 0 ? 'Hit' : (this.assetAttackT > 0 ? 'Attack' : (dist > this.cfg.range ? 'Run' : 'Idle')));
-
-    // bắn
-    this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && dist < this.cfg.range * 1.8 && !player.dead) {
-      this.fireTimer = this.fireRate * (0.8 + SkywardRNG.random('ai') * 0.5);
-      this.shoot(player);
+    if (this.assetMixer) {
+      const animation = this.assetHitT > 0 ? 'Hit' :
+        (this.attackState === 'telegraph' || this.attackState === 'lunge' ? 'Attack' :
+        (this.attackState === 'recover' ? 'Idle' : (dist > profile.idealRange ? 'Run' : 'Idle')));
+      this._playAssetAnimation(animation);
     }
+
+    this._updateTelegraphVisual();
+
+    // Drone/Commander ranged pressure is deliberate and telegraphed. Speeder and Brute
+    // use their own charge/slam patterns instead of sharing a generic ranged projectile.
   }
 
   shoot(player) {
+    const target = new THREE.Vector3(player.pos.x, player.pos.y - 0.85, player.pos.z);
+    this.shootAt(target, this.isBoss ? this.bossPhase : 1);
+  }
+
+  shootAt(target, phase) {
     this.assetAttackT = 0.42;
     this._playAssetAnimation('Attack');
     const from = this.group.position.clone();
-    const target = new THREE.Vector3(player.pos.x, player.pos.y - 0.85, player.pos.z);
-    const dir = target.sub(from).normalize();
-    this.spawnProjectile(from, dir);
+    const baseDirection = target.clone().sub(from).normalize();
+    const offsets = this.isBoss && window.SkywardCombatAI
+      ? window.SkywardCombatAI.getCommanderVolleyOffsets(phase || 1)
+      : [0];
+    offsets.forEach(offset => {
+      const direction = baseDirection.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), offset);
+      this.spawnProjectile(from, direction);
+    });
     this.sound.enemyShot();
+    this._emitCombatEvent('enemy:attack', {
+      attack: this.isBoss ? 'commander-volley' : 'aimed-shot',
+      phase: this.isBoss ? this.bossPhase : null,
+      projectiles: offsets.length
+    });
   }
 
   spawnProjectile(from, dir) {
-    let p = this.projectilePool.pop();
-    if (!p) {
+    let projectile = this.projectilePool.pop();
+    if (!projectile) {
       const resources = this.projectileResources;
       const mesh = new THREE.Mesh(resources.geometry, resources.material);
       const glow = new THREE.Sprite(resources.spriteMaterial);
       glow.scale.set(1.4, 1.4, 1.4); mesh.add(glow);
-      p = { mesh, vel: new THREE.Vector3(), life: 0, damage: this.cfg.damage };
+      projectile = { mesh, vel: new THREE.Vector3(), life: 0, damage: this.cfg.damage };
     }
-    p.mesh.visible = true;
-    p.mesh.position.copy(from);
-    p.vel.copy(dir).multiplyScalar(this.isBoss ? 20 : 17);
-    p.life = this.isBoss ? 5.5 : 5;
-    p.damage = this.cfg.damage;
-    this.scene.add(p.mesh);
-    this.projectiles.push(p);
+    projectile.mesh.visible = true;
+    projectile.mesh.position.copy(from);
+    projectile.vel.copy(dir).multiplyScalar(this.isBoss ? 20 : 17);
+    projectile.life = this.isBoss ? 5.5 : 5;
+    projectile.damage = this.cfg.damage;
+    this.scene.add(projectile.mesh);
+    this.projectiles.push(projectile);
   }
 
   updateProjectiles(dt, player, onPlayerHit, world) {
@@ -486,7 +758,7 @@ class Enemy {
       }
       let dead = p.life <= 0 || pp.y < 0.1 || blocked;
       if (hit && !blocked && !player.dead) {
-        onPlayerHit(p.damage, pp.clone());
+        onPlayerHit(p.damage, pp.clone(), { source: 'projectile', enemyType: this.type });
         dead = true;
       }
       if (dead) {
@@ -503,6 +775,19 @@ class Enemy {
     this.alive = false;
     this._clearProjectiles();
     this.scene.remove(this.group);
+    this._hideTelegraph();
+    if (this.telegraphLine) {
+      this.scene.remove(this.telegraphLine);
+      this.telegraphLine.geometry.dispose();
+      this.telegraphLine.material.dispose();
+      this.telegraphLine = null;
+    }
+    if (this.telegraphMarker) {
+      this.scene.remove(this.telegraphMarker);
+      this.telegraphMarker.geometry.dispose();
+      this.telegraphMarker.material.dispose();
+      this.telegraphMarker = null;
+    }
     if (this.assetMixer) this.assetMixer.stopAllAction();
     this.group.traverse(o => {
       if (!o.isMesh) return;
@@ -617,7 +902,7 @@ class WaveManager {
         if (e.updateDeath(dt)) { e.dispose(); this.enemies.splice(i, 1); i--; }
         continue;
       }
-      e.update(dt, player, bounds, this.enemies, world);
+      e.update(dt, player, bounds, this.enemies, world, this.onPlayerHit);
       e.updateProjectiles(dt, player, this.onPlayerHit, world);
     }
 
