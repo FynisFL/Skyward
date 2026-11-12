@@ -76,4 +76,10 @@ clock += 1000;
 assert.equal(invalid.sample({ p50: 'not-a-number', drawCalls: NaN, state: 'menu' }, clock), true);
 assert.equal(invalid.report().summary.p50Ms, undefined, 'Invalid numeric samples must be excluded from summaries');
 
+const zeroClock = benchmark.createRecorder({ now: () => 0 });
+zeroClock.start({ scenario: 'zero-clock' });
+assert.equal(zeroClock.report().startedAt, new Date(0).toISOString(), 'Epoch-zero clocks must produce a valid report');
+zeroClock.stop('manual');
+assert.equal(zeroClock.report().sampleCount, 0);
+
 console.log('Phase 9 tests: PASS (capture lifecycle, interval gating, aggregation, export, safety cap, invalid metrics)');
