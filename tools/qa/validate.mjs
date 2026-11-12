@@ -151,6 +151,31 @@ check('Phase 9 benchmark unit tests pass', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
+check('Phase 10 Replay v2 supports touch and lifecycle inputs', () => {
+  const replay = read('js/replay.js');
+  assert.ok(html.includes('js/replay.js'));
+  assert.ok(read('app/src/main/assets/game/js/replay.js') === replay);
+  for (const token of ['VERSION = 2', 'MAX_SUPPORTED_VERSION = 2', 'touch-move', 'touch-action-down', 'game-pause', 'game-resume']) {
+    assert.ok(replay.includes(token) || main.includes(token), 'Missing Replay v2 contract: ' + token);
+  }
+  for (const token of ["recordInput('touch-action-down'", "recordInput('touch-action-up'", "recordInput('touch-move'", "recordInput('game-pause'", "recordInput('game-resume'"]) {
+    assert.ok(main.includes(token), 'Missing input capture hook: ' + token);
+  }
+  assert.ok(main.includes("events.emit('replay:checkpoint'"));
+  assert.ok(main.includes('getReplayCheckpoint'));
+  assert.ok(main.includes("replayVersion === 1"), 'Legacy v1 key-pause playback must remain supported');
+});
+
+check('Phase 10 gameplay replay avoids wall-clock pickup animation', () => {
+  assert.ok(main.includes('const pickupAge = Math.max(0, 18 - d.life)'));
+  assert.ok(!main.includes('Math.sin(performance.now() * 0.002 + d.mesh.userData.phase)'));
+});
+
+check('Phase 10 Replay v2 regression tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase10.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
