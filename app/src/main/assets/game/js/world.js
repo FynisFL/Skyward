@@ -193,7 +193,9 @@ const World = (() => {
       if (ground >= minY && ground <= maxY) surface = { height: ground, collider: null };
       for (let i = 0; i < this.platforms.length; i++) {
         const p = this.platforms[i];
-        if (!containsPlatform(p, x, z) || p.topY < minY || p.topY > maxY) continue;
+        // The player's capsule can still be supported while its centre slightly
+        // overhangs the platform edge.
+        if (!containsPlatform(p, x, z, -0.12) || p.topY < minY || p.topY > maxY) continue;
         if (!surface || p.topY > surface.height) {
           surface = { height: p.topY, collider: p.collider || null };
         }
@@ -215,7 +217,8 @@ const World = (() => {
       }
       for (let i = 0; i < this.platforms.length; i++) {
         const p = this.platforms[i];
-        if (!containsPlatform(p, x, z)) continue;
+        // Allow a small capsule overhang when catching the edge of a lower step.
+        if (!containsPlatform(p, x, z, -0.12)) continue;
         if (fromFeetY < p.topY - 1e-4 || toFeetY > p.topY + 1e-4) continue;
         if (!surface || p.topY > surface.height) {
           surface = { height: p.topY, collider: p.collider || null };
