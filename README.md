@@ -124,8 +124,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests và Android 
 
 ### Trạng thái xác minh
 
-- Phase 7/8/9/10 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên Phase 10 runtime.
-- Web deploy: PASS. Android debug APK build: PASS trên runtime commit `680c26c6`. Xem [Phase 10 CI evidence](PHASE_10_COMPLETION_REPORT.md#ci-evidence).
+- Phase 7/8/9/10 tests, JavaScript syntax, repository validator và Web/Android mirror parity: PASS trên runtime commit `42b65bd1`.
+- Web deployment và Android debug APK build/artifact upload: PASS; GitHub Pages build/deploy cũng đã PASS. Xem [Phase 10 CI evidence](PHASE_10_COMPLETION_REPORT.md#ci-evidence).
 - Gameplay/replay trên trình duyệt thật và kiểm thử trên thiết bị Android: vẫn cần manual testing.
 - FPS/GPU improvement thực tế chưa được đo trên thiết bị mục tiêu; dùng F3 để thu thập benchmark.
 - Replay v2 đã bổ sung touch và platform lifecycle input; cross-device manual playback vẫn cần xác minh.
@@ -166,7 +166,7 @@ The recorder exports FPS/frame-time percentiles, draw calls, triangles, geometry
 
 ## Phase 10 — Replay 2.0 & Cross-Platform Determinism
 
-Replay v2 records keyboard/mouse, touch joystick/look/actions, pause/resume, abandon-to-menu and Endless upgrade selections. It snapshots look sensitivity/Y inversion and compares quantized gameplay checkpoints every 120 frames, including player, weapon ordnance, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
+Replay v2 records keyboard/mouse, touch joystick/look/actions, pause/resume, abandon-to-menu and Endless upgrade selections. It snapshots look sensitivity/Y inversion and compares quantized gameplay checkpoints every 120 frames, including player, weapon ordnance, wave, enemy and gameplay RNG state. New recordings use v2; legacy v1 tapes remain importable, nhưng không thể tái tạo input touch, lifecycle và Endless upgrade mà v1 chưa ghi. See [PHASE_10_QA.md](PHASE_10_QA.md) for capture, playback and cross-device test instructions.
 
 Phase 9 remains the final system-wide QA/release gate and should be signed off after implementation phases are complete.
 
