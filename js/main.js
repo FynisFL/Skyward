@@ -1101,7 +1101,9 @@
     G.victory = victory;
     G.state = 'over';
     events.emit('run:completed', { victory: !!victory, mission: G.mission.id, score: G.score, kills: G.kills, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
+    const wasReplayPlayback = replay.isPlaying();
     replay.finish({ victory: !!victory, mission: G.mission.id, score: G.score, kills: G.kills, wave: G.wave, elapsed: Number(G.elapsed.toFixed(3)) });
+    if (wasReplayPlayback) { player.sensitivity = settings.sens; player.invertY = settings.invert; }
     triggerDown = false; dragging = false; player.keys.clear();
     player.touchMove.x = 0; player.touchMove.y = 0; weapons.setAiming(false);
     Music.setScene('menu');
@@ -1372,6 +1374,7 @@
       })),
       upgrades: offeredUpgradeIds.slice(),
       upgradeOptions: currentUpgradeOptions.map(item => item.id),
+      controls: { sensitivity: replayNumber(player.sensitivity), invertY: !!player.invertY },
       rng: { seed: rngState.seed, streams: gameplayStreams }
     };
   }
