@@ -13,12 +13,12 @@
 - Added attack state, locked targets/direction, stagger, phase and weakpoint timers to Replay v2 checkpoints.
 - Added Phase 11 deterministic tests, repository validator checks and quality/Android CI gates.
 - Disabled frustum culling for animated enemy glTF meshes to avoid rest-pose bounds hiding moving models.
-- Added a ray-sphere fallback for hitscan only when no actual enemy mesh is hit; this preserves real weakpoint mesh hits and respects world obstruction distance.
+- Added per-enemy ray-sphere fallback for hitscan. A mesh hit on a farther enemy no longer suppresses proxy evaluation for a nearer enemy whose animated mesh raycast misses. Actual mesh hits remain authoritative for that enemy, preserving Commander weakpoint detection and world obstruction ordering.
 - Synchronized combat AI, enemies, weapons, main runtime and HTML script loading to the Android WebView mirror.
 
 ## Automated verification
 
-Verified on runtime commit `f079a64c8a3487eef464109668869b8798de6b8c`.
+Initial Phase 11 implementation verified on runtime commit `f079a64c8a3487eef464109668869b8798de6b8c`. Follow-up rendering and hitscan regression fixes are verified on commit `3b4a8bdfaad834f998a74601ca496fb54818551b`.
 
 | Check | Status |
 |---|---|
@@ -58,6 +58,20 @@ The follow-up fix for the reported issue was validated on runtime commit `59c4c5
 - [Latest GitHub Pages build/deploy — PASS](https://github.com/FynisFL/Skyward/actions/runs/43191832402)
 
 Android artifact: `Skyward-Salvage-Android-APK`, approximately 18.16 MB, artifact ID `13930727943`, expires 26 November 2026.
+
+## Confirmed gameplay regression checks
+
+The user has confirmed in gameplay that:
+- Enemy models are visible again.
+- Hitscan shots register reliably against enemies.
+
+This closes the reported enemy-visibility and hit-registration regression. It does not replace the remaining Phase 11 combat matrix below.
+
+Latest follow-up verification:
+- [Quality validation — PASS](https://github.com/FynisFL/Skyward/actions/runs/43201927382)
+- [Android QA, mirror parity and APK build — PASS](https://github.com/FynisFL/Skyward/actions/runs/43201927376)
+- [Web deployment — PASS](https://github.com/FynisFL/Skyward/actions/runs/43201927245)
+- [GitHub Pages — PASS](https://github.com/FynisFL/Skyward/actions/runs/43201926284)
 
 ## Manual verification still required
 
