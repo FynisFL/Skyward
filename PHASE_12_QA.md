@@ -66,13 +66,20 @@ For each manual run, record:
 - Whether the model was visible, whether the hit registered, and whether world obstruction behaved correctly.
 - Screen recording or screenshot and exact reproduction steps for each defect.
 
+## CI evidence
+
+- Quality validation #159: [PASS](https://github.com/FynisFL/Skyward/actions/runs/43357274166).
+- Quality validation #160: [PASS](https://github.com/FynisFL/Skyward/actions/runs/43357297885).
+- Android APK build #165, including Phase 12 tests and Web/Android byte parity: [PASS](https://github.com/FynisFL/Skyward/actions/runs/43357268846).
+- Web deployment #177: [PASS](https://github.com/FynisFL/Skyward/actions/runs/43357299038).
+
 ## Exit criteria
 
-- [ ] Automated Phase 12 regression suite passes.
-- [ ] Repository QA validator passes.
-- [ ] Web and Android runtime mirrors are byte-identical.
-- [ ] Quality validation workflow passes.
-- [ ] Android APK build and asset parity checks pass.
+- [x] Automated Phase 12 regression suite passes.
+- [x] Repository QA validator passes.
+- [x] Web and Android runtime mirrors are byte-identical.
+- [x] Quality validation workflow passes.
+- [x] Android APK build and asset parity checks pass.
 - [ ] Desktop manual camera, rendering and hit-registration checks pass.
 - [ ] Physical Android manual camera, rendering and hit-registration checks pass.
 - [ ] Phase 12 completion report records actual commit and test evidence.
