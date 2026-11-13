@@ -72,13 +72,13 @@ Added the Phase 12 suite to:
 |---|---:|---|
 | Skyward quality validation | [#159](https://github.com/FynisFL/Skyward/actions/runs/43357274166) | PASS |
 | Skyward quality validation | [#160](https://github.com/FynisFL/Skyward/actions/runs/43357297885) | PASS |
-| Android APK build | [#165](https://github.com/FynisFL/Skyward/actions/runs/43357268846) | QA, Phase 12 tests and Web/Android parity passed; APK build was still running when this report was prepared |
-| Web deployment | [#177](https://github.com/FynisFL/Skyward/actions/runs/43357299038) | Running when this report was prepared |
-| GitHub Pages deployment | [#231](https://github.com/FynisFL/Skyward/actions/runs/43357297499) | Running when this report was prepared |
+| Android APK build | [#165](https://github.com/FynisFL/Skyward/actions/runs/43357268846) | PASS — QA, Phase 12 tests, Web/Android parity, APK build and artifact upload |
+| Web deployment | [#177](https://github.com/FynisFL/Skyward/actions/runs/43357299038) | PASS |
+| GitHub Pages deployment | [#231](https://github.com/FynisFL/Skyward/actions/runs/43357297499) | Running when this report was prepared; not required for the Phase 12 code test result |
 
 The quality workflow confirms JavaScript syntax checks, earlier regression suites, the new Phase 12 suite and repository QA validator passed.
 
-The Android workflow confirms the Phase 12 test step and byte-parity check passed before entering the APK build step. The build result must be checked separately before recording APK build as PASS.
+The Android workflow confirms the Phase 12 test step and byte-parity check passed before entering the APK build step. The APK build, rename and artifact upload subsequently completed successfully.
 
 ## 4. Remaining manual verification
 
@@ -101,7 +101,7 @@ See [PHASE_12_QA.md](PHASE_12_QA.md) for the full manual matrix and exit criteri
 **Automated quality validation:** PASS.  
 **Per-enemy proxy edge case:** Covered by existing Phase 11 test and the new Phase 12 suite.  
 **glTF validation:** Refactored for direct regression testing and mirrored to Android.  
-**Android APK build:** QA and parity steps passed; final build result still needs confirmation.  
+**Android APK build:** PASS, including APK artifact upload.  
 **Manual desktop/physical Android gameplay:** Pending.
 
 **Phase 12 status: AUTOMATED QA PASSED — GAMEPLAY VERIFICATION PENDING.**
