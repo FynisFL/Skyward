@@ -117,11 +117,12 @@ node tools/qa/phase8.test.mjs
 node tools/qa/phase9.test.mjs
 node tools/qa/phase10.test.mjs
 node tools/qa/phase11.test.mjs
+node tools/qa/phase12.test.mjs
 node tools/qa/validate.mjs
 find js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
 
-CI chạy validation, deterministic tests, adaptive-rendering tests, replay tests, combat AI tests và Android APK build. Xem trạng thái tại [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
+CI chạy validation, deterministic tests, adaptive-rendering tests, replay tests, combat AI tests, Phase 12 rendering/camera regression tests và Android APK build. Xem trạng thái tại [GitHub Actions](https://github.com/FynisFL/Skyward/actions).
 
 ### Trạng thái xác minh
 
@@ -149,6 +150,8 @@ CI chạy validation, deterministic tests, adaptive-rendering tests, replay test
 | [PHASE_10_COMPLETION_REPORT.md](PHASE_10_COMPLETION_REPORT.md) | Kết quả triển khai Phase 10 |
 | [PHASE_11_QA.md](PHASE_11_QA.md) | Combat depth, enemy roles, telegraphs, stagger và Commander phases |
 | [PHASE_11_COMPLETION_REPORT.md](PHASE_11_COMPLETION_REPORT.md) | Kết quả triển khai Phase 11 |
+| [PHASE_12_QA.md](PHASE_12_QA.md) | Camera, enemy rendering, glTF validation, hitscan proxy và kiểm thử đa nền tảng |
+| [PHASE_12_COMPLETION_REPORT.md](PHASE_12_COMPLETION_REPORT.md) | Kết quả xử lý rendering/camera và bằng chứng xác minh Phase 12 |
 
 
 ## Phase 9 — Runtime QA & Benchmark
@@ -178,6 +181,10 @@ Phase 9 remains the final system-wide QA/release gate and should be signed off a
 ## Phase 11 — Combat Depth & Enemy AI Evolution
 
 Each enemy now creates a different combat decision: Drone uses a telegraphed aimed shot, Speeder flanks and charges through a locked lane, Brute marks a ground-slam area, and Commander escalates from a single shot to three- and five-projectile fans across its health phases. Focused damage can interrupt telegraphs. The Commander reactor deals 2.5× damage only during its 1.15-second exposed window after a volley. See [PHASE_11_QA.md](PHASE_11_QA.md) for attack timings, counterplay and the manual combat matrix.
+
+## Phase 12 — Critical Rendering & Camera Control Stabilization
+
+Phase 12 hardens enemy glTF validation and procedural fallback, keeps animated enemy models visible when rest-pose bounds are unreliable, and validates camera pitch/input handling. Hitscan proxy candidates are evaluated per enemy and remain subject to world-geometry obstruction. Run `node tools/qa/phase12.test.mjs` for camera, proxy, asset-bounds and Web/Android mirror regression coverage. Automated tests do not replace desktop gameplay or physical Android verification; see [PHASE_12_QA.md](PHASE_12_QA.md).
 
 ## Lưu dữ liệu
 
