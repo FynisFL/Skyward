@@ -82,6 +82,6 @@ For each manual run, record:
 - [x] Android APK build and asset parity checks pass.
 - [ ] Desktop manual camera, rendering and hit-registration checks pass.
 - [ ] Physical Android manual camera, rendering and hit-registration checks pass.
-- [ ] Phase 12 completion report records actual commit and test evidence.
+- [x] Phase 12 completion report records implementation and test evidence.
 
 **Do not mark Phase 12 fully closed based on CI alone.** Desktop and physical Android gameplay checks are required for the final sign-off.
