@@ -304,44 +304,64 @@
       o.receiveShadow = true;
     });
   }
+  function validateEnemyInstance(root, targetHeight) {
+    if (!root || typeof root.traverse !== 'function') {
+      return { valid: false, reason: 'missing-root' };
+    }
+
+    let meshCount = 0;
+    let invalidGeometry = false;
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      meshCount++;
+      const position = o.geometry && o.geometry.attributes && o.geometry.attributes.position;
+      if (!position || !Number.isFinite(position.count) || position.count < 3) {
+        invalidGeometry = true;
+      }
+    });
+
+    if (!meshCount) return { valid: false, reason: 'missing-mesh' };
+    if (invalidGeometry) return { valid: false, reason: 'invalid-geometry' };
+
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const values = [size.x, size.y, size.z, center.x, center.y, center.z];
+    if (box.isEmpty() || !values.every(Number.isFinite) ||
+        size.x < 0.001 || size.y < 0.001 || size.z < 0.001) {
+      return { valid: false, reason: 'invalid-bounds' };
+    }
+
+    const desired = Number.isFinite(targetHeight) && targetHeight > 0 ? targetHeight : 2;
+    const scale = desired / size.y;
+    if (!Number.isFinite(scale) || scale <= 0) {
+      return { valid: false, reason: 'invalid-scale' };
+    }
+
+    return { valid: true, size: size, center: center, scale: scale };
+  }
+
   function createEnemy(name, enemy, targetHeight) {
     try {
       const instance = makeInstance(name, true);
       if (!instance || !instance.root) return null;
 
-      // Never replace the procedural enemy with an empty or degenerate glTF
-      // hierarchy. Returning null deliberately keeps the known-good fallback
-      // visible in Enemy's constructor.
-      let meshCount = 0;
-      let invalidMesh = false;
-      instance.root.traverse(o => {
-        if (!o.isMesh) return;
-        meshCount++;
-        const position = o.geometry && o.geometry.attributes && o.geometry.attributes.position;
-        if (!position || position.count < 3) invalidMesh = true;
-      });
-      if (!meshCount || invalidMesh) {
-        console.warn('[Skyward] Rejecting incomplete enemy glTF; using procedural fallback:', name);
+      // Reject invalid glTF models before replacing the visible procedural fallback.
+      const validation = validateEnemyInstance(instance.root, targetHeight);
+      if (!validation.valid) {
+        console.warn('[Skyward] Rejecting enemy glTF (' + validation.reason +
+          '); using procedural fallback:', name);
         return null;
       }
 
       markEnemyMeshes(instance.root, enemy);
-      instance.root.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(instance.root);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const values = [size.x, size.y, size.z, center.x, center.y, center.z];
-      if (box.isEmpty() || !values.every(Number.isFinite) || size.y < 0.001 ||
-          size.x < 0.001 || size.z < 0.001) {
-        console.warn('[Skyward] Rejecting degenerate enemy glTF bounds; using procedural fallback:', name);
-        return null;
-      }
-
-      const desired = Number.isFinite(targetHeight) && targetHeight > 0 ? targetHeight : 2;
-      const scale = desired / size.y;
-      if (!Number.isFinite(scale) || scale <= 0) return null;
-      instance.root.scale.setScalar(scale);
-      instance.root.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+      instance.root.scale.setScalar(validation.scale);
+      instance.root.position.set(
+        -validation.center.x * validation.scale,
+        -validation.center.y * validation.scale,
+        -validation.center.z * validation.scale
+      );
       instance.root.updateMatrixWorld(true);
       return instance;
     } catch (err) {
