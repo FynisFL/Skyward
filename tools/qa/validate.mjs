@@ -208,6 +208,11 @@ check('Phase 11 combat AI deterministic unit tests pass', () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
+check('Phase 12 rendering, camera and asset regression tests pass', () => {
+  const result = spawnSync(process.execPath, ['tools/qa/phase12.test.mjs'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 const randomCount = (main.match(/Math\.random\(/g) || []).length +
   (enemies.match(/Math\.random\(/g) || []).length +
   (weapons.match(/Math\.random\(/g) || []).length;
