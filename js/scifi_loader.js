@@ -411,6 +411,7 @@
     setQuality: quality => { textureQuality = quality === 'high' ? 'high' : 'med'; },
     has: name => !!pack[name],
     createEnemy,
+    validateEnemyInstance,
     createStatic,
     addWorldProps,
     getClipNames: name => { const d = getDefinition(name); return d ? d.clips.map(c => c.name) : []; }
