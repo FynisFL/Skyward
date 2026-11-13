@@ -51,6 +51,9 @@ jobs:
       - name: Run Phase 11 combat AI tests
         run: node tools/qa/phase11.test.mjs
 
+      - name: Run Phase 12 rendering and camera regression tests
+        run: node tools/qa/phase12.test.mjs
+
       - name: Verify web and Android assets are identical
         run: |
           cmp index.html app/src/main/assets/game/index.html
