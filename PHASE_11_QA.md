@@ -72,7 +72,8 @@ Tests validate role profiles, role-specific movement intent, the Speeder charge 
 
 ## Manual combat matrix
 
-- [ ] Drone: confirm the animated model stays visible while moving/attacking; aim at the body from front/side angles and confirm hits register even if mesh raycast misses; confirm aim line is visible before every shot; use cover and evade after the tell.
+- [x] Enemy visibility and body hitscan registration confirmed by user after the rendering and per-enemy proxy fixes.
+- [ ] Drone: verify aim line is visible before every shot; use cover and evade after the tell.
 - [ ] Speeder: confirm it changes lane, locks direction, lunges once and enters recovery after hit/miss; an elevated platform outside the 1.75-unit height tolerance must avoid the horizontal charge.
 - [ ] Brute: confirm ground radius appears at the locked position; step outside the marker to avoid damage.
 - [ ] Stagger: confirm focused damage interrupts Drone, Speeder and Brute telegraphs; validate Commander interruption with heavy/focused fire.
